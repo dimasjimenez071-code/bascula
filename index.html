@@ -35,12 +35,12 @@
   </header>
 
   <nav class="pestanas" role="tablist">
-    <button class="pestana activa" data-vista="tara" role="tab">
-      <span class="pestana__icono">1</span> Tara
+    <button class="pestana activa" data-vista="pesar" role="tab">
+      <span class="pestana__icono">⇩</span> Pesar
     </button>
-    <button class="pestana" data-vista="carga" role="tab">
-      <span class="pestana__icono">2</span> Carga
-      <span class="chincheta" id="chinchetaPendientes" hidden>0</span>
+    <button class="pestana" data-vista="camiones" role="tab">
+      <span class="pestana__icono">🚛</span> Camiones
+      <span class="chincheta" id="chinchetaCamiones" hidden>0</span>
     </button>
     <button class="pestana" data-vista="registro" role="tab">
       <span class="pestana__icono">☰</span> Registro
@@ -52,78 +52,38 @@
 
   <main class="contenido">
 
-    <!-- ============ 1. TARA ============ -->
-    <section class="vista activa" id="vista-tara">
-      <div class="tarjeta">
-        <h2 class="tarjeta__titulo">Pesar camión vacío</h2>
-        <p class="tarjeta__ayuda">El camión entra sin carga. Apunta la matrícula y lo que marca la báscula.</p>
-
-        <form id="formTara" autocomplete="off">
-          <label class="campo">
-            <span class="campo__etiqueta">Matrícula</span>
-            <input type="text" id="taraMatricula" class="campo__control campo__control--placa"
-                   placeholder="1234 ABC" required maxlength="12" autocapitalize="characters">
-          </label>
-
-          <label class="campo">
-            <span class="campo__etiqueta">Peso en vacío (tara)</span>
-            <div class="campo__conUnidad">
-              <input type="number" id="taraPeso" class="campo__control campo__control--numero"
-                     placeholder="0" required min="1" step="1" inputmode="numeric">
-              <span class="campo__unidad">kg</span>
-            </div>
-          </label>
-
-          <label class="campo">
-            <span class="campo__etiqueta">Barco <span class="campo__opcional">(opcional)</span></span>
-            <input type="text" id="taraBarco" class="campo__control" placeholder="Nombre del barco" list="listaBarcos">
-            <datalist id="listaBarcos"></datalist>
-          </label>
-
-          <button type="submit" class="boton boton--principal">Guardar tara</button>
-        </form>
-      </div>
-
-      <div class="tarjeta">
-        <h2 class="tarjeta__titulo">
-          Pendientes de cargar
-          <span class="contador" id="contadorPendientes">0</span>
-        </h2>
-        <div id="listaPendientes" class="lista"></div>
-      </div>
-    </section>
-
-    <!-- ============ 2. CARGA ============ -->
-    <section class="vista" id="vista-carga">
+    <!-- ============ PESAR UNA CARGA ============ -->
+    <section class="vista activa" id="vista-pesar">
       <div class="tarjeta">
         <h2 class="tarjeta__titulo">Pesar camión cargado</h2>
-        <p class="tarjeta__ayuda">Elige el camión, pesa con la arena dentro y di de qué cliente es.</p>
+        <p class="tarjeta__ayuda">Elige el camión, pon el peso con la arena dentro y de qué cliente es. Se puede repetir todas las veces que haga falta.</p>
 
-        <div id="sinPendientes" class="aviso" hidden>
-          No hay ningún camión con la tara apuntada. Empieza por la pestaña <strong>Tara</strong>.
+        <div id="sinCamiones" class="aviso" hidden>
+          Todavía no hay camiones dados de alta. Empieza por la pestaña
+          <strong>Camiones</strong> y pesa uno vacío para guardar su tara.
         </div>
 
-        <form id="formCarga" autocomplete="off" hidden>
+        <form id="formPesaje" autocomplete="off" hidden>
           <div class="campo">
             <span class="campo__etiqueta">Camión</span>
             <div id="selectorCamiones" class="selector"></div>
           </div>
 
-          <div class="resumenTara" id="resumenTara" hidden>
+          <div class="resumenTara" id="resumenCamion" hidden>
             <div>
-              <span class="resumenTara__etiqueta">Tara registrada</span>
+              <span class="resumenTara__etiqueta">Tara guardada</span>
               <strong id="resumenTaraValor">—</strong>
             </div>
             <div>
-              <span class="resumenTara__etiqueta">Hora de entrada</span>
-              <strong id="resumenTaraHora">—</strong>
+              <span class="resumenTara__etiqueta">Viajes de hoy</span>
+              <strong id="resumenViajes">—</strong>
             </div>
           </div>
 
           <label class="campo">
             <span class="campo__etiqueta">Peso cargado (bruto)</span>
             <div class="campo__conUnidad">
-              <input type="number" id="cargaPeso" class="campo__control campo__control--numero"
+              <input type="number" id="pesajeBruto" class="campo__control campo__control--numero"
                      placeholder="0" required min="1" step="1" inputmode="numeric">
               <span class="campo__unidad">kg</span>
             </div>
@@ -131,9 +91,15 @@
 
           <label class="campo">
             <span class="campo__etiqueta">Cliente</span>
-            <input type="text" id="cargaCliente" class="campo__control"
+            <input type="text" id="pesajeCliente" class="campo__control"
                    placeholder="Empresa a la que va la arena" required list="listaClientes">
             <datalist id="listaClientes"></datalist>
+          </label>
+
+          <label class="campo">
+            <span class="campo__etiqueta">Barco <span class="campo__opcional">(se recuerda entre viajes)</span></span>
+            <input type="text" id="pesajeBarco" class="campo__control" placeholder="Nombre del barco" list="listaBarcos">
+            <datalist id="listaBarcos"></datalist>
           </label>
 
           <div class="neto" id="cajaNeto">
@@ -141,12 +107,53 @@
             <span class="neto__valor" id="netoValor">—</span>
           </div>
 
-          <button type="submit" class="boton boton--principal">Registrar pesaje</button>
+          <button type="submit" class="boton boton--principal">Registrar viaje</button>
         </form>
+      </div>
+
+      <div class="tarjeta" id="tarjetaUltimos" hidden>
+        <h2 class="tarjeta__titulo">Últimos viajes</h2>
+        <div id="ultimosViajes" class="lista"></div>
       </div>
     </section>
 
-    <!-- ============ 3. REGISTRO ============ -->
+    <!-- ============ CAMIONES ============ -->
+    <section class="vista" id="vista-camiones">
+      <div class="tarjeta">
+        <h2 class="tarjeta__titulo">Dar de alta un camión</h2>
+        <p class="tarjeta__ayuda">Se pesa el camión vacío una sola vez. La tara queda guardada y sirve para todos sus viajes.</p>
+
+        <form id="formCamion" autocomplete="off">
+          <label class="campo">
+            <span class="campo__etiqueta">Matrícula</span>
+            <input type="text" id="camionMatricula" class="campo__control campo__control--placa"
+                   placeholder="1234 ABC" required maxlength="12" autocapitalize="characters">
+          </label>
+
+          <label class="campo">
+            <span class="campo__etiqueta">Peso en vacío (tara)</span>
+            <div class="campo__conUnidad">
+              <input type="number" id="camionTara" class="campo__control campo__control--numero"
+                     placeholder="0" required min="1" step="1" inputmode="numeric">
+              <span class="campo__unidad">kg</span>
+            </div>
+          </label>
+
+          <button type="submit" class="boton boton--principal">Guardar camión</button>
+        </form>
+      </div>
+
+      <div class="tarjeta">
+        <h2 class="tarjeta__titulo">
+          Camiones dados de alta
+          <span class="contador" id="contadorCamiones">0</span>
+        </h2>
+        <p class="tarjeta__ayuda">Si un camión se vuelve a tarar, se escribe otra vez su matrícula con el peso nuevo y se actualiza. Los viajes ya registrados no cambian.</p>
+        <div id="listaCamiones" class="lista"></div>
+      </div>
+    </section>
+
+    <!-- ============ REGISTRO ============ -->
     <section class="vista" id="vista-registro">
       <div class="tarjeta">
         <div class="tarjeta__cabecera">
@@ -176,7 +183,7 @@
           <table class="tabla" id="tablaRegistro">
             <thead>
               <tr>
-                <th>Fecha</th>
+                <th>Hora</th>
                 <th>Matrícula</th>
                 <th>Cliente</th>
                 <th>Barco</th>
@@ -196,11 +203,11 @@
             </tfoot>
           </table>
         </div>
-        <p class="vacio" id="registroVacio">Todavía no hay pesajes cerrados.</p>
+        <p class="vacio" id="registroVacio">Todavía no hay viajes registrados.</p>
       </div>
     </section>
 
-    <!-- ============ 4. RESUMEN ============ -->
+    <!-- ============ RESUMEN ============ -->
     <section class="vista" id="vista-resumen">
       <div class="tarjeta">
         <h2 class="tarjeta__titulo">Total por cliente</h2>
@@ -208,10 +215,15 @@
         <div id="resumenClientes" class="resumen"></div>
       </div>
 
+      <div class="tarjeta">
+        <h2 class="tarjeta__titulo">Viajes por camión</h2>
+        <div id="resumenCamiones" class="resumen"></div>
+      </div>
+
       <div class="tarjeta tarjeta--total">
         <span class="totalGeneral__etiqueta">Total descargado</span>
         <span class="totalGeneral__valor" id="totalGeneral">0 kg</span>
-        <span class="totalGeneral__detalle" id="totalGeneralDetalle">0 pesajes</span>
+        <span class="totalGeneral__detalle" id="totalGeneralDetalle">0 viajes</span>
       </div>
     </section>
 

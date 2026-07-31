@@ -1,31 +1,86 @@
 /* =========================================================
    CAPA DE DATOS
    ---------------------------------------------------------
-   Este es el ÚNICO archivo que habrá que cambiar cuando
-   pasemos a la base de datos en la nube. Todo lo demás de la
-   aplicación habla solo con estas funciones, así que no se
-   entera de dónde se guardan las cosas.
+   Dos cosas separadas, porque en el muelle funcionan así:
+
+   - CAMIÓN: se pesa vacío UNA vez y su tara queda guardada.
+   - PESAJE: cada viaje que hace ese camión cargado. Un camión
+     tiene todos los pesajes que haga en el día.
+
+   Este es el único archivo que cambiará cuando pasemos a la
+   base de datos en la nube. El resto de la aplicación habla
+   solo con estas funciones.
    ========================================================= */
 
 const Datos = (function () {
   'use strict';
 
-  const CLAVE = 'bascula.pesajes.v1';
+  const CLAVE = 'bascula.datos.v2';
+  const CLAVE_ANTIGUA = 'bascula.pesajes.v1';
   const suscriptores = [];
 
   /* ---------- utilidades internas ---------- */
 
-  function leerTodo() {
-    try {
-      return JSON.parse(localStorage.getItem(CLAVE)) || [];
-    } catch (e) {
-      console.error('No se pudo leer el almacén local:', e);
-      return [];
-    }
+  function vacio() {
+    return { camiones: [], pesajes: [] };
   }
 
-  function escribirTodo(lista) {
-    localStorage.setItem(CLAVE, JSON.stringify(lista));
+  function leerTodo() {
+    try {
+      const guardado = JSON.parse(localStorage.getItem(CLAVE));
+      if (guardado && guardado.camiones && guardado.pesajes) return guardado;
+    } catch (e) {
+      console.error('No se pudo leer el almacén local:', e);
+    }
+    return migrarDesdeVersionAntigua();
+  }
+
+  /* Los datos de la primera versión se aprovechan en lugar de perderse:
+     cada matrícula pasa a ser un camión con su tara, y cada pesaje que
+     estuviera cerrado pasa a ser un viaje de ese camión. */
+  function migrarDesdeVersionAntigua() {
+    const nuevo = vacio();
+    let antiguos;
+    try {
+      antiguos = JSON.parse(localStorage.getItem(CLAVE_ANTIGUA));
+    } catch (e) {
+      antiguos = null;
+    }
+    if (!Array.isArray(antiguos) || !antiguos.length) return nuevo;
+
+    antiguos.forEach(function (p) {
+      let camion = nuevo.camiones.find(function (c) { return c.matricula === p.matricula; });
+      if (!camion) {
+        camion = {
+          id: nuevoId(),
+          matricula: p.matricula,
+          tara: p.tara,
+          fechaTara: p.fechaTara || new Date().toISOString()
+        };
+        nuevo.camiones.push(camion);
+      }
+      if (p.estado === 'completado' && p.bruto) {
+        nuevo.pesajes.push({
+          id: p.id || nuevoId(),
+          camionId: camion.id,
+          matricula: p.matricula,
+          tara: p.tara,
+          bruto: p.bruto,
+          cliente: p.cliente || '',
+          barco: p.barco || '',
+          fecha: p.fechaBruto || p.fechaTara,
+          archivado: !!p.archivado,
+          operario: p.operarioBruto || ''
+        });
+      }
+    });
+
+    localStorage.setItem(CLAVE, JSON.stringify(nuevo));
+    return nuevo;
+  }
+
+  function escribirTodo(datos) {
+    localStorage.setItem(CLAVE, JSON.stringify(datos));
     avisar();
   }
 
@@ -40,141 +95,153 @@ const Datos = (function () {
   /* ---------- API pública ---------- */
 
   return {
-    /** Todos los pesajes, del más reciente al más antiguo. */
-    async listar() {
-      return leerTodo().sort(function (a, b) {
-        return (b.fechaTara || '').localeCompare(a.fechaTara || '');
+
+    /* ============ CAMIONES ============ */
+
+    /** Todos los camiones dados de alta, por orden alfabético de matrícula. */
+    async camiones() {
+      return leerTodo().camiones.slice().sort(function (a, b) {
+        return a.matricula.localeCompare(b.matricula, 'es');
       });
     },
 
-    /** Camiones que ya tienen tara pero aún no han salido cargados.
-        En orden de llegada: el que lleva más tiempo esperando, primero. */
-    async pendientes() {
-      return (await this.listar())
-        .filter(function (p) { return p.estado === 'pendiente'; })
-        .sort(function (a, b) { return (a.fechaTara || '').localeCompare(b.fechaTara || ''); });
+    async buscarCamion(id) {
+      return leerTodo().camiones.find(function (c) { return c.id === id; }) || null;
     },
 
-    /** Pesajes cerrados de la jornada en curso. */
-    async completados() {
-      return (await this.listar()).filter(function (p) {
-        return p.estado === 'completado' && !p.archivado;
+    /** Da de alta un camión o actualiza su tara si ya existía.
+        Devuelve {camion, actualizado} para poder avisar de cuál fue el caso. */
+    async guardarCamion(datos) {
+      const todo = leerTodo();
+      const existente = todo.camiones.find(function (c) {
+        return c.matricula === datos.matricula;
       });
+
+      if (existente) {
+        const taraAnterior = existente.tara;
+        existente.tara = datos.tara;
+        existente.fechaTara = new Date().toISOString();
+        escribirTodo(todo);
+        return { camion: existente, actualizado: true, taraAnterior: taraAnterior };
+      }
+
+      const camion = {
+        id: nuevoId(),
+        matricula: datos.matricula,
+        tara: datos.tara,
+        fechaTara: new Date().toISOString()
+      };
+      todo.camiones.push(camion);
+      escribirTodo(todo);
+      return { camion: camion, actualizado: false };
     },
 
-    /** Pesajes de jornadas ya cerradas. Siguen guardados por si acaso. */
+    /** Da de baja un camión. Sus pesajes ya hechos NO se tocan:
+        guardan su propia copia de la matrícula y de la tara. */
+    async eliminarCamion(id) {
+      const todo = leerTodo();
+      todo.camiones = todo.camiones.filter(function (c) { return c.id !== id; });
+      escribirTodo(todo);
+    },
+
+    /** Cuántos viajes lleva hoy cada camión. */
+    async viajesDeHoy() {
+      const todo = leerTodo();
+      const cuenta = {};
+      todo.pesajes.forEach(function (p) {
+        if (p.archivado) return;
+        cuenta[p.camionId] = (cuenta[p.camionId] || 0) + 1;
+      });
+      return cuenta;
+    },
+
+    /* ============ PESAJES ============ */
+
+    /** Pesajes de la jornada en curso, del más reciente al más antiguo. */
+    async pesajes() {
+      return leerTodo().pesajes
+        .filter(function (p) { return !p.archivado; })
+        .sort(function (a, b) { return (b.fecha || '').localeCompare(a.fecha || ''); });
+    },
+
     async archivados() {
-      return (await this.listar()).filter(function (p) { return p.archivado; });
+      return leerTodo().pesajes.filter(function (p) { return p.archivado; });
     },
 
-    /** Primer paso: el camión entra vacío y se pesa. */
-    async crearTara(datos) {
-      const lista = leerTodo();
-
-      // Un mismo camión no puede tener dos taras abiertas a la vez.
-      const abierto = lista.find(function (p) {
-        return p.estado === 'pendiente' && p.matricula === datos.matricula;
-      });
-      if (abierto) {
-        throw new Error('El camión ' + datos.matricula + ' ya tiene una tara pendiente de cargar.');
+    /** Registra un viaje: el camión sale cargado y se pesa.
+        Se guarda una copia de la tara usada, para que si mañana se
+        vuelve a tarar el camión los pesajes de hoy no cambien. */
+    async crearPesaje(datos) {
+      const todo = leerTodo();
+      const camion = todo.camiones.find(function (c) { return c.id === datos.camionId; });
+      if (!camion) throw new Error('Ese camión ya no está dado de alta.');
+      if (datos.bruto <= camion.tara) {
+        throw new Error('El peso cargado (' + datos.bruto + ' kg) tiene que ser mayor que la tara del camión (' + camion.tara + ' kg).');
       }
 
       const pesaje = {
         id: nuevoId(),
-        matricula: datos.matricula,
+        camionId: camion.id,
+        matricula: camion.matricula,
+        tara: camion.tara,
+        bruto: datos.bruto,
+        cliente: datos.cliente,
         barco: datos.barco || '',
-        tara: datos.tara,
-        fechaTara: new Date().toISOString(),
-        bruto: null,
-        cliente: '',
-        fechaBruto: null,
-        estado: 'pendiente',
-        operarioTara: datos.operario || ''
+        fecha: new Date().toISOString(),
+        archivado: false,
+        operario: datos.operario || ''
       };
 
-      lista.push(pesaje);
-      escribirTodo(lista);
+      todo.pesajes.push(pesaje);
+      escribirTodo(todo);
       return pesaje;
     },
 
-    /** Segundo paso: el camión sale cargado y se vuelve a pesar. */
-    async completar(id, datos) {
-      const lista = leerTodo();
-      const pesaje = lista.find(function (p) { return p.id === id; });
-      if (!pesaje) throw new Error('No se encuentra ese pesaje.');
-      if (pesaje.estado === 'completado') throw new Error('Ese pesaje ya estaba cerrado.');
-      if (datos.bruto <= pesaje.tara) {
-        throw new Error('El peso cargado (' + datos.bruto + ' kg) tiene que ser mayor que la tara (' + pesaje.tara + ' kg).');
-      }
-
-      pesaje.bruto = datos.bruto;
-      pesaje.cliente = datos.cliente;
-      pesaje.fechaBruto = new Date().toISOString();
-      pesaje.estado = 'completado';
-      pesaje.operarioBruto = datos.operario || '';
-
-      escribirTodo(lista);
-      return pesaje;
+    async eliminarPesaje(id) {
+      const todo = leerTodo();
+      todo.pesajes = todo.pesajes.filter(function (p) { return p.id !== id; });
+      escribirTodo(todo);
     },
 
-    /** Corregir un pesaje ya cerrado. */
-    async editar(id, cambios) {
-      const lista = leerTodo();
-      const pesaje = lista.find(function (p) { return p.id === id; });
-      if (!pesaje) throw new Error('No se encuentra ese pesaje.');
-      Object.assign(pesaje, cambios);
-      escribirTodo(lista);
-      return pesaje;
-    },
-
-    async eliminar(id) {
-      escribirTodo(leerTodo().filter(function (p) { return p.id !== id; }));
-    },
-
-    /** Cierre de jornada: los pesajes cerrados dejan de salir en el registro,
-        pero NO se destruyen — quedan archivados por si la descarga del Excel
-        falló o hay que consultar algo después. Los camiones pendientes de
-        cargar no se tocan. */
-    async archivarCompletados() {
-      const lista = leerTodo();
+    /** Cierre de jornada: los pesajes dejan de salir en el registro pero
+        NO se destruyen, quedan archivados por si hay que recuperarlos.
+        Los camiones y sus taras se quedan como están para mañana. */
+    async archivarPesajes() {
+      const todo = leerTodo();
       const sello = new Date().toISOString();
       let cuantos = 0;
-      lista.forEach(function (p) {
-        if (p.estado === 'completado' && !p.archivado) {
+      todo.pesajes.forEach(function (p) {
+        if (!p.archivado) {
           p.archivado = true;
           p.fechaArchivo = sello;
           cuantos++;
         }
       });
-      escribirTodo(lista);
+      escribirTodo(todo);
       return cuantos;
     },
 
-    /** Lista de clientes ya usados, para autocompletar. */
+    /* ============ LISTAS DE APOYO ============ */
+
     async clientes() {
       const vistos = new Set();
-      leerTodo().forEach(function (p) { if (p.cliente) vistos.add(p.cliente); });
+      leerTodo().pesajes.forEach(function (p) { if (p.cliente) vistos.add(p.cliente); });
       return Array.from(vistos).sort(function (a, b) { return a.localeCompare(b, 'es'); });
     },
 
-    /** Lista de barcos ya usados. */
     async barcos() {
       const vistos = new Set();
-      leerTodo().forEach(function (p) { if (p.barco) vistos.add(p.barco); });
+      leerTodo().pesajes.forEach(function (p) { if (p.barco) vistos.add(p.barco); });
       return Array.from(vistos).sort(function (a, b) { return a.localeCompare(b, 'es'); });
     },
 
-    /** Avisar a la interfaz cuando cambien los datos. */
     suscribir(fn) {
       suscriptores.push(fn);
-      // Si la misma app está abierta en otra pestaña del mismo dispositivo,
-      // esto ya mantiene las dos sincronizadas.
       window.addEventListener('storage', function (e) {
         if (e.key === CLAVE) fn();
       });
     },
 
-    /** Dónde se están guardando los datos ahora mismo. */
     origen: 'Este dispositivo'
   };
 })();

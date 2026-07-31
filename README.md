@@ -1,24 +1,29 @@
 # Báscula — control de pesajes de muelle
 
-Aplicación para llevar el control de la arena que descarga cada barco: se pesa el
-camión vacío, se pesa cargado, y la arena neta se calcula sola y queda registrada
-a nombre del cliente que corresponda.
+Aplicación para llevar el control de la arena que descarga cada barco. Cada
+camión se pesa vacío una sola vez y su tara queda guardada; después hace todos
+los viajes que haga falta y en cada uno solo hay que apuntar el peso cargado y
+el cliente. La arena neta se calcula sola.
 
 Funciona en móvil, tablet y ordenador. No hay que instalar nada.
 
 ## Cómo se usa
 
-**1 · Tara** — El camión entra vacío. Se apunta la matrícula y lo que marca la
-báscula. Queda en la lista de espera, el que lleva más tiempo primero.
+**Camiones** — Se pesa el camión vacío y se guarda su matrícula con la tara. Se
+hace una vez. Si algún día se vuelve a tarar, se escribe otra vez la misma
+matrícula con el peso nuevo y se actualiza; **los viajes ya registrados
+conservan la tara que tenían**, así que las cuentas de días anteriores no
+cambian.
 
-**2 · Carga** — El camión sale cargado. Se elige de la lista, se apunta el peso y
-el cliente. La arena neta se muestra en grande antes de guardar, para poder
-cantarla y confirmarla.
+**Pesar** — Se elige el camión, se pone el peso con la arena dentro y el
+cliente. La arena neta se muestra en grande antes de guardar, para poder
+cantarla y confirmarla. Se repite tantas veces como viajes haga el camión.
 
-**3 · Registro** — Todos los pesajes cerrados, con filtros por cliente, barco y
+**Registro** — Todos los viajes del día, con filtros por cliente, barco y
 matrícula. Se puede exportar a Excel.
 
-**4 · Resumen** — Cuánta arena lleva cada empresa y el total del barco.
+**Resumen** — Cuánta arena lleva cada empresa, cuántos viajes ha hecho cada
+camión y el total del barco.
 
 ## Instalarla como aplicación
 
@@ -30,20 +35,21 @@ haya cobertura** en el muelle.
 ## Cerrar la jornada
 
 Al terminar el día, el botón **Cerrar jornada** descarga el Excel con todos los
-pesajes y deja el registro limpio para el día siguiente, sin borrar uno a uno.
+viajes y deja el registro limpio para el día siguiente.
 
-Los pesajes no se destruyen: quedan archivados en el dispositivo por si la
-descarga falló o hay que consultar algo. Los camiones que todavía estén
-pendientes de cargar no se tocan.
+Los viajes no se destruyen: quedan archivados en el dispositivo por si la
+descarga falló o hay que consultar algo. Los camiones y sus taras se quedan
+dados de alta para mañana.
 
 ## Detalles que evitan errores
 
-- Un mismo camión no puede tener dos taras abiertas a la vez.
-- No deja guardar si el peso cargado es menor o igual que la tara.
-- Antes de borrar cualquier cosa pide confirmación diciendo exactamente qué se va
-  a borrar.
-- Las matrículas se guardan siempre igual (mayúsculas, un solo espacio), para que
-  el buscador las encuentre.
+- No deja guardar un viaje si el peso cargado no supera la tara del camión.
+- Cada viaje guarda su propia copia de la tara usada, no una referencia.
+- Tras registrar un viaje hay que volver a elegir el camión a propósito, para
+  no colgarle un peso al camión equivocado.
+- Antes de borrar cualquier cosa pide confirmación diciendo exactamente qué se
+  va a borrar.
+- Las matrículas se guardan siempre igual (mayúsculas, un solo espacio).
 
 ## Estado actual
 
@@ -58,4 +64,5 @@ conectando una base de datos en la nube.
 | `index.html` | La estructura de las cuatro pantallas |
 | `estilos.css` | El aspecto visual |
 | `app.js` | La lógica de la interfaz |
-| `datos.js` | Dónde se guardan los pesajes — el único archivo que cambiará al pasar a la nube |
+| `datos.js` | Dónde se guardan los datos — el único archivo que cambiará al pasar a la nube |
+| `sw.js` | Permite que funcione sin cobertura |

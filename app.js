@@ -1,7 +1,7 @@
 /* =========================================================
    BÁSCULA — lógica de la interfaz
    Habla solo con el objeto Datos (datos.js). No sabe ni le
-   importa dónde se guardan los pesajes.
+   importa dónde se guardan las cosas.
    ========================================================= */
 
 (function () {
@@ -11,7 +11,7 @@
   let camionElegido = null;
 
   /* ---------------------------------------------------------
-     Utilidades de formato
+     Formato
      --------------------------------------------------------- */
 
   const kg = function (n) {
@@ -24,6 +24,11 @@
     return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const fechaCorta = function (iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+  };
+
   const fechaHora = function (iso) {
     if (!iso) return '—';
     return new Date(iso).toLocaleString('es-ES', {
@@ -32,7 +37,6 @@
     });
   };
 
-  // Deja la matrícula siempre igual: mayúsculas y un solo espacio.
   const normalizarPlaca = function (t) {
     return t.trim().toUpperCase().replace(/\s+/g, ' ');
   };
@@ -49,15 +53,14 @@
     clearTimeout(temporizadorMensaje);
     temporizadorMensaje = setTimeout(function () {
       caja.className = 'mensaje';
-    }, tipo === 'error' ? 5000 : 2800);
+    }, tipo === 'error' ? 5000 : 3000);
   }
 
   /* ---------------------------------------------------------
      Confirmación propia
      ---------------------------------------------------------
-     No usamos el confirm() del navegador: muchos navegadores y
-     paneles lo bloquean en silencio y devuelven "no" sin
-     preguntar nada, así que el borrado nunca llegaba a pasar.
+     No usamos el confirm() del navegador: muchos navegadores lo
+     bloquean en silencio y responden "no" sin preguntar nada.
      --------------------------------------------------------- */
 
   function confirmar(texto, opciones) {
@@ -112,54 +115,51 @@
   });
 
   /* ---------------------------------------------------------
-     1. TARA
+     CAMIONES
      --------------------------------------------------------- */
 
-  $('taraMatricula').addEventListener('blur', function () {
+  $('camionMatricula').addEventListener('blur', function () {
     this.value = normalizarPlaca(this.value);
   });
 
-  $('formTara').addEventListener('submit', async function (e) {
+  $('formCamion').addEventListener('submit', async function (e) {
     e.preventDefault();
-    const matricula = normalizarPlaca($('taraMatricula').value);
-    const tara = parseInt($('taraPeso').value, 10);
+    const matricula = normalizarPlaca($('camionMatricula').value);
+    const tara = parseInt($('camionTara').value, 10);
 
     if (!matricula) return avisar('Falta la matrícula.', 'error');
     if (!tara || tara <= 0) return avisar('El peso de la tara no es válido.', 'error');
 
-    try {
-      await Datos.crearTara({
-        matricula: matricula,
-        tara: tara,
-        barco: $('taraBarco').value.trim()
-      });
-      const barcoRecordado = $('taraBarco').value;
-      this.reset();
-      $('taraBarco').value = barcoRecordado; // el barco suele repetirse todo el día
-      $('taraMatricula').focus();
-      avisar('Tara de ' + matricula + ' guardada: ' + kg(tara), 'exito');
-      await pintarTodo();
-    } catch (err) {
-      avisar(err.message, 'error');
+    const res = await Datos.guardarCamion({ matricula: matricula, tara: tara });
+    this.reset();
+    $('camionMatricula').focus();
+
+    if (res.actualizado) {
+      avisar('Tara de ' + matricula + ' actualizada: ' + kg(res.taraAnterior) + ' → ' + kg(tara), 'exito');
+    } else {
+      avisar('Camión ' + matricula + ' dado de alta con ' + kg(tara), 'exito');
     }
+    await pintarTodo();
   });
 
-  async function pintarPendientes() {
-    const pendientes = await Datos.pendientes();
-    const caja = $('listaPendientes');
-    $('contadorPendientes').textContent = pendientes.length;
+  async function pintarCamiones() {
+    const camiones = await Datos.camiones();
+    const viajes = await Datos.viajesDeHoy();
+    const caja = $('listaCamiones');
 
-    const chincheta = $('chinchetaPendientes');
-    chincheta.textContent = pendientes.length;
-    chincheta.hidden = pendientes.length === 0;
+    $('contadorCamiones').textContent = camiones.length;
+    const chincheta = $('chinchetaCamiones');
+    chincheta.textContent = camiones.length;
+    chincheta.hidden = camiones.length === 0;
 
-    if (!pendientes.length) {
-      caja.innerHTML = '<p class="vacio">Ningún camión esperando carga.</p>';
+    if (!camiones.length) {
+      caja.innerHTML = '<p class="vacio">Ningún camión dado de alta todavía.</p>';
       return;
     }
 
     caja.innerHTML = '';
-    pendientes.forEach(function (p) {
+    camiones.forEach(function (c) {
+      const n = viajes[c.id] || 0;
       const fila = document.createElement('div');
       fila.className = 'pendiente';
       fila.innerHTML =
@@ -168,28 +168,30 @@
           '<div class="pendiente__datos"></div>' +
         '</div>' +
         '<div class="pendiente__acciones">' +
-          '<button class="boton boton--secundario boton--pequeno">Cargar</button>' +
-          '<button class="boton boton--fantasma">Anular</button>' +
+          '<button class="boton boton--secundario boton--pequeno">Pesar</button>' +
+          '<button class="boton boton--fantasma">Borrar</button>' +
         '</div>';
 
-      fila.querySelector('.pendiente__placa').textContent = p.matricula;
+      fila.querySelector('.pendiente__placa').textContent = c.matricula;
       fila.querySelector('.pendiente__datos').textContent =
-        'Tara ' + kg(p.tara) + ' · entrada ' + hora(p.fechaTara) + (p.barco ? ' · ' + p.barco : '');
+        'Tara ' + kg(c.tara) + ' · desde el ' + fechaCorta(c.fechaTara) +
+        ' · ' + (n === 1 ? '1 viaje hoy' : n + ' viajes hoy');
 
       const botones = fila.querySelectorAll('button');
       botones[0].addEventListener('click', function () {
-        camionElegido = p.id;
-        irA('carga');
-        pintarCarga();
+        camionElegido = c.id;
+        irA('pesar');
+        pintarPesar().then(function () { $('pesajeBruto').focus(); });
       });
       botones[1].addEventListener('click', async function () {
         const ok = await confirmar(
-          'Se borrará la tara de ' + p.matricula + ' (' + kg(p.tara) + ') y habrá que volver a pesar el camión.',
-          { titulo: 'Anular tara', aceptar: 'Anular' }
+          'Se dará de baja el camión ' + c.matricula + ' (tara ' + kg(c.tara) + '). ' +
+          'Los viajes que ya haya hecho se quedan en el registro.',
+          { titulo: 'Dar de baja', aceptar: 'Dar de baja' }
         );
         if (!ok) return;
-        await Datos.eliminar(p.id);
-        avisar('Tara anulada.');
+        await Datos.eliminarCamion(c.id);
+        avisar('Camión dado de baja.');
         await pintarTodo();
       });
 
@@ -198,84 +200,120 @@
   }
 
   /* ---------------------------------------------------------
-     2. CARGA
+     PESAR UNA CARGA
      --------------------------------------------------------- */
 
-  async function pintarCarga() {
-    const pendientes = await Datos.pendientes();
-    const hay = pendientes.length > 0;
-    $('sinPendientes').hidden = hay;
-    $('formCarga').hidden = !hay;
-    if (!hay) return;
+  async function pintarPesar() {
+    const camiones = await Datos.camiones();
+    const viajes = await Datos.viajesDeHoy();
+    const hay = camiones.length > 0;
 
-    // Si el camión elegido ya no está pendiente, olvidarlo.
-    if (!pendientes.some(function (p) { return p.id === camionElegido; })) camionElegido = null;
+    $('sinCamiones').hidden = hay;
+    $('formPesaje').hidden = !hay;
+    if (!hay) { $('tarjetaUltimos').hidden = true; return; }
+
+    if (!camiones.some(function (c) { return c.id === camionElegido; })) camionElegido = null;
 
     const selector = $('selectorCamiones');
     selector.innerHTML = '';
-    pendientes.forEach(function (p) {
+    camiones.forEach(function (c) {
+      const n = viajes[c.id] || 0;
       const opcion = document.createElement('button');
       opcion.type = 'button';
-      opcion.className = 'selector__opcion' + (p.id === camionElegido ? ' elegida' : '');
+      opcion.className = 'selector__opcion' + (c.id === camionElegido ? ' elegida' : '');
       opcion.innerHTML = '<span class="selector__placa"></span><span class="selector__meta"></span>';
-      opcion.querySelector('.selector__placa').textContent = p.matricula;
-      opcion.querySelector('.selector__meta').textContent = 'Tara ' + kg(p.tara);
+      opcion.querySelector('.selector__placa').textContent = c.matricula;
+      opcion.querySelector('.selector__meta').textContent =
+        'Tara ' + kg(c.tara) + (n ? ' · ' + n + (n === 1 ? ' viaje' : ' viajes') : '');
       opcion.addEventListener('click', function () {
-        camionElegido = p.id;
-        pintarCarga();
-        $('cargaPeso').focus();
+        camionElegido = c.id;
+        pintarPesar().then(function () { $('pesajeBruto').focus(); });
       });
       selector.appendChild(opcion);
     });
 
-    const elegido = pendientes.find(function (p) { return p.id === camionElegido; });
-    $('resumenTara').hidden = !elegido;
+    const elegido = camiones.find(function (c) { return c.id === camionElegido; });
+    $('resumenCamion').hidden = !elegido;
     if (elegido) {
+      const n = viajes[elegido.id] || 0;
       $('resumenTaraValor').textContent = kg(elegido.tara);
-      $('resumenTaraHora').textContent = hora(elegido.fechaTara);
+      $('resumenViajes').textContent = n === 1 ? '1 viaje' : n + ' viajes';
     }
-    calcularNeto();
+
+    await calcularNeto();
+    await pintarUltimos();
   }
 
-  function calcularNeto() {
+  async function calcularNeto() {
     const caja = $('cajaNeto');
     const valor = $('netoValor');
-    const bruto = parseInt($('cargaPeso').value, 10);
+    const bruto = parseInt($('pesajeBruto').value, 10);
+    const camion = camionElegido ? await Datos.buscarCamion(camionElegido) : null;
 
-    Datos.pendientes().then(function (pendientes) {
-      const elegido = pendientes.find(function (p) { return p.id === camionElegido; });
-      if (!elegido || !bruto) {
-        valor.textContent = '—';
-        caja.classList.remove('neto--error');
-        return;
-      }
-      const neto = bruto - elegido.tara;
-      if (neto <= 0) {
-        valor.textContent = 'Revisar pesos';
-        caja.classList.add('neto--error');
-      } else {
-        valor.textContent = kg(neto);
-        caja.classList.remove('neto--error');
-      }
+    if (!camion || !bruto) {
+      valor.textContent = '—';
+      caja.classList.remove('neto--error');
+      return;
+    }
+    const neto = bruto - camion.tara;
+    if (neto <= 0) {
+      valor.textContent = 'Revisar pesos';
+      caja.classList.add('neto--error');
+    } else {
+      valor.textContent = kg(neto);
+      caja.classList.remove('neto--error');
+    }
+  }
+
+  $('pesajeBruto').addEventListener('input', calcularNeto);
+
+  async function pintarUltimos() {
+    const pesajes = await Datos.pesajes();
+    const caja = $('ultimosViajes');
+    $('tarjetaUltimos').hidden = pesajes.length === 0;
+    if (!pesajes.length) return;
+
+    caja.innerHTML = '';
+    pesajes.slice(0, 4).forEach(function (p) {
+      const fila = document.createElement('div');
+      fila.className = 'pendiente pendiente--hecho';
+      fila.innerHTML =
+        '<div>' +
+          '<div class="pendiente__placa"></div>' +
+          '<div class="pendiente__datos"></div>' +
+        '</div>' +
+        '<div class="pendiente__peso"></div>';
+      fila.querySelector('.pendiente__placa').textContent = p.matricula;
+      fila.querySelector('.pendiente__datos').textContent = hora(p.fecha) + ' · ' + p.cliente;
+      fila.querySelector('.pendiente__peso').textContent = kg(p.bruto - p.tara);
+      caja.appendChild(fila);
     });
   }
 
-  $('cargaPeso').addEventListener('input', calcularNeto);
-
-  $('formCarga').addEventListener('submit', async function (e) {
+  $('formPesaje').addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!camionElegido) return avisar('Elige primero el camión.', 'error');
 
-    const bruto = parseInt($('cargaPeso').value, 10);
-    const cliente = $('cargaCliente').value.trim();
+    const bruto = parseInt($('pesajeBruto').value, 10);
+    const cliente = $('pesajeCliente').value.trim();
     if (!bruto || bruto <= 0) return avisar('El peso cargado no es válido.', 'error');
     if (!cliente) return avisar('Falta el cliente.', 'error');
 
     try {
-      const p = await Datos.completar(camionElegido, { bruto: bruto, cliente: cliente });
+      const p = await Datos.crearPesaje({
+        camionId: camionElegido,
+        bruto: bruto,
+        cliente: cliente,
+        barco: $('pesajeBarco').value.trim()
+      });
+
+      // El camión se deselecciona a propósito: el siguiente hay que
+      // elegirlo a mano, para no colgarle un peso al camión equivocado.
+      // El cliente y el barco se quedan, que suelen repetirse.
       camionElegido = null;
-      this.reset();
-      avisar('Pesaje cerrado: ' + kg(p.bruto - p.tara) + ' para ' + p.cliente, 'exito');
+      $('pesajeBruto').value = '';
+
+      avisar('Viaje registrado: ' + p.matricula + ' · ' + kg(p.bruto - p.tara) + ' para ' + p.cliente, 'exito');
       await pintarTodo();
     } catch (err) {
       avisar(err.message, 'error');
@@ -283,11 +321,11 @@
   });
 
   /* ---------------------------------------------------------
-     3. REGISTRO
+     REGISTRO
      --------------------------------------------------------- */
 
   async function pintarRegistro() {
-    const todos = await Datos.completados();
+    const todos = await Datos.pesajes();
 
     const fCliente = $('filtroCliente').value;
     const fBarco = $('filtroBarco').value;
@@ -310,7 +348,7 @@
 
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td class="fecha"></td>' +
+        '<td class="hora"></td>' +
         '<td class="placa"></td>' +
         '<td class="cliente"></td>' +
         '<td class="barco"></td>' +
@@ -319,7 +357,7 @@
         '<td class="derecha neto-celda"></td>' +
         '<td><button class="boton boton--fantasma">Borrar</button></td>';
 
-      tr.querySelector('.fecha').textContent = fechaHora(p.fechaBruto);
+      tr.querySelector('.hora').textContent = hora(p.fecha);
       tr.querySelector('.placa').textContent = p.matricula;
       tr.querySelector('.cliente').textContent = p.cliente;
       tr.querySelector('.barco').textContent = p.barco || '—';
@@ -329,13 +367,13 @@
 
       tr.querySelector('button').addEventListener('click', async function () {
         const ok = await confirmar(
-          'Pesaje de ' + p.matricula + ' · ' + p.cliente + ' · ' + kg(neto) +
+          'Viaje de ' + p.matricula + ' · ' + p.cliente + ' · ' + kg(neto) +
           '. Esto no se puede deshacer.',
-          { titulo: 'Borrar pesaje', aceptar: 'Borrar' }
+          { titulo: 'Borrar viaje', aceptar: 'Borrar' }
         );
         if (!ok) return;
-        await Datos.eliminar(p.id);
-        avisar('Pesaje borrado.');
+        await Datos.eliminarPesaje(p.id);
+        avisar('Viaje borrado.');
         await pintarTodo();
       });
 
@@ -347,8 +385,8 @@
     $('tablaRegistro').hidden = filtrados.length === 0;
     if (filtrados.length === 0) {
       $('registroVacio').textContent = todos.length
-        ? 'Ningún pesaje coincide con el filtro.'
-        : 'Todavía no hay pesajes cerrados.';
+        ? 'Ningún viaje coincide con el filtro.'
+        : 'Todavía no hay viajes registrados.';
     }
   }
 
@@ -359,13 +397,14 @@
   /* ---------- Exportar a Excel (formato CSV) ---------- */
 
   function descargarCSV(filas) {
-    const cabecera = ['Fecha entrada', 'Fecha salida', 'Matricula', 'Cliente', 'Barco', 'Tara (kg)', 'Bruto (kg)', 'Neto (kg)'];
+    const cabecera = ['Fecha', 'Hora', 'Matricula', 'Cliente', 'Barco', 'Tara (kg)', 'Bruto (kg)', 'Neto (kg)'];
     const lineas = [cabecera.join(';')];
 
     filas.forEach(function (p) {
+      const f = new Date(p.fecha);
       lineas.push([
-        fechaHora(p.fechaTara),
-        fechaHora(p.fechaBruto),
+        f.toLocaleDateString('es-ES'),
+        f.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
         p.matricula,
         '"' + (p.cliente || '').replace(/"/g, '""') + '"',
         '"' + (p.barco || '').replace(/"/g, '""') + '"',
@@ -375,7 +414,7 @@
       ].join(';'));
     });
 
-    // El BOM inicial hace que Excel abra las tildes correctamente.
+    // El BOM inicial hace que Excel abra bien las tildes.
     const blob = new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
     const enlace = document.createElement('a');
     enlace.href = URL.createObjectURL(blob);
@@ -385,91 +424,97 @@
   }
 
   $('botonExportar').addEventListener('click', async function () {
-    const filas = await Datos.completados();
+    const filas = await Datos.pesajes();
     if (!filas.length) return avisar('No hay nada que exportar todavía.', 'error');
     descargarCSV(filas);
     avisar('Archivo descargado.', 'exito');
   });
 
-  /* ---------- Cerrar jornada: descargar el Excel y vaciar el registro ---------- */
+  /* ---------- Cerrar jornada ---------- */
 
   $('botonVaciar').addEventListener('click', async function () {
-    const filas = await Datos.completados();
-    if (!filas.length) return avisar('No hay pesajes que cerrar.', 'error');
+    const filas = await Datos.pesajes();
+    if (!filas.length) return avisar('No hay viajes que cerrar.', 'error');
 
     const total = filas.reduce(function (suma, p) { return suma + (p.bruto - p.tara); }, 0);
-    const pendientes = await Datos.pendientes();
-
-    const camiones = pendientes.length === 1
-      ? 'Hay 1 camión pendiente de cargar y se queda como está.'
-      : 'Hay ' + pendientes.length + ' camiones pendientes de cargar y se quedan como están.';
 
     const ok = await confirmar(
-      'Se descargará el Excel con los ' + filas.length + ' pesajes (' + kg(total) +
-      ') y el registro quedará limpio para mañana. ' +
-      (pendientes.length ? camiones + ' ' : '') +
-      'Los pesajes no se destruyen: quedan archivados por si hiciera falta recuperarlos.',
+      'Se descargará el Excel con los ' + filas.length + ' viajes (' + kg(total) +
+      ') y el registro quedará limpio para mañana. Los camiones y sus taras se quedan ' +
+      'dados de alta. Los viajes no se destruyen: quedan archivados por si hiciera falta recuperarlos.',
       { titulo: 'Cerrar jornada', aceptar: 'Descargar y cerrar' }
     );
     if (!ok) return;
 
     descargarCSV(filas);
-    const archivados = await Datos.archivarCompletados();
-    avisar('Jornada cerrada: ' + archivados + ' pesajes archivados.', 'exito');
+    const archivados = await Datos.archivarPesajes();
+    avisar('Jornada cerrada: ' + archivados + ' viajes archivados.', 'exito');
     await pintarTodo();
   });
 
   /* ---------------------------------------------------------
-     4. RESUMEN
+     RESUMEN
      --------------------------------------------------------- */
 
   async function pintarResumen() {
-    const filas = await Datos.completados();
+    const filas = await Datos.pesajes();
     const porCliente = {};
+    const porCamion = {};
     let total = 0;
 
     filas.forEach(function (p) {
       const neto = p.bruto - p.tara;
       total += neto;
+
       if (!porCliente[p.cliente]) porCliente[p.cliente] = { peso: 0, viajes: 0 };
       porCliente[p.cliente].peso += neto;
       porCliente[p.cliente].viajes++;
+
+      if (!porCamion[p.matricula]) porCamion[p.matricula] = { peso: 0, viajes: 0 };
+      porCamion[p.matricula].peso += neto;
+      porCamion[p.matricula].viajes++;
     });
 
-    const caja = $('resumenClientes');
-    const nombres = Object.keys(porCliente).sort(function (a, b) {
-      return porCliente[b].peso - porCliente[a].peso;
+    pintarBloque($('resumenClientes'), porCliente, total, 'camión', 'camiones');
+    pintarBloque($('resumenCamiones'), porCamion, total, 'viaje', 'viajes');
+
+    $('totalGeneral').textContent = kg(total);
+    const nClientes = Object.keys(porCliente).length;
+    $('totalGeneralDetalle').textContent =
+      filas.length + (filas.length === 1 ? ' viaje' : ' viajes') +
+      ' · ' + nClientes + (nClientes === 1 ? ' cliente' : ' clientes');
+  }
+
+  function pintarBloque(caja, datos, total, singular, plural) {
+    const nombres = Object.keys(datos).sort(function (a, b) {
+      return datos[b].peso - datos[a].peso;
     });
 
     if (!nombres.length) {
-      caja.innerHTML = '<p class="vacio">Todavía no hay pesajes cerrados.</p>';
-    } else {
-      caja.innerHTML = '';
-      nombres.forEach(function (nombre) {
-        const d = porCliente[nombre];
-        const fila = document.createElement('div');
-        fila.className = 'clienteFila';
-        fila.innerHTML =
-          '<div style="flex:1">' +
-            '<div class="clienteFila__nombre"></div>' +
-            '<div class="clienteFila__viajes"></div>' +
-            '<div class="clienteFila__barra"></div>' +
-          '</div>' +
-          '<div class="clienteFila__peso"></div>';
-        fila.querySelector('.clienteFila__nombre').textContent = nombre;
-        fila.querySelector('.clienteFila__viajes').textContent =
-          d.viajes + (d.viajes === 1 ? ' camión' : ' camiones');
-        fila.querySelector('.clienteFila__barra').style.width =
-          Math.max(4, (d.peso / total) * 100) + '%';
-        fila.querySelector('.clienteFila__peso').textContent = kg(d.peso);
-        caja.appendChild(fila);
-      });
+      caja.innerHTML = '<p class="vacio">Todavía no hay viajes registrados.</p>';
+      return;
     }
 
-    $('totalGeneral').textContent = kg(total);
-    $('totalGeneralDetalle').textContent =
-      filas.length + (filas.length === 1 ? ' pesaje' : ' pesajes') +
-      ' · ' + nombres.length + (nombres.length === 1 ? ' cliente' : ' clientes');
+    caja.innerHTML = '';
+    nombres.forEach(function (nombre) {
+      const d = datos[nombre];
+      const fila = document.createElement('div');
+      fila.className = 'clienteFila';
+      fila.innerHTML =
+        '<div style="flex:1;min-width:0">' +
+          '<div class="clienteFila__nombre"></div>' +
+          '<div class="clienteFila__viajes"></div>' +
+          '<div class="clienteFila__barra"></div>' +
+        '</div>' +
+        '<div class="clienteFila__peso"></div>';
+      fila.querySelector('.clienteFila__nombre').textContent = nombre;
+      fila.querySelector('.clienteFila__viajes').textContent =
+        d.viajes + ' ' + (d.viajes === 1 ? singular : plural);
+      fila.querySelector('.clienteFila__barra').style.width =
+        Math.max(4, (d.peso / total) * 100) + '%';
+      fila.querySelector('.clienteFila__peso').textContent = kg(d.peso);
+      caja.appendChild(fila);
+    });
   }
 
   /* ---------------------------------------------------------
@@ -479,25 +524,27 @@
   async function pintarListas() {
     const clientes = await Datos.clientes();
     const barcos = await Datos.barcos();
-
-    $('listaClientes').innerHTML = clientes.map(function (c) {
-      return '<option></option>';
-    }).join('');
-    Array.from($('listaClientes').children).forEach(function (op, i) { op.value = clientes[i]; });
-
-    $('listaBarcos').innerHTML = barcos.map(function () { return '<option></option>'; }).join('');
-    Array.from($('listaBarcos').children).forEach(function (op, i) { op.value = barcos[i]; });
-
-    rellenarFiltro($('filtroCliente'), clientes, 'Todos');
-    rellenarFiltro($('filtroBarco'), barcos, 'Todos');
+    rellenarDatalist($('listaClientes'), clientes);
+    rellenarDatalist($('listaBarcos'), barcos);
+    rellenarFiltro($('filtroCliente'), clientes);
+    rellenarFiltro($('filtroBarco'), barcos);
   }
 
-  function rellenarFiltro(select, valores, textoVacio) {
+  function rellenarDatalist(lista, valores) {
+    lista.innerHTML = '';
+    valores.forEach(function (v) {
+      const op = document.createElement('option');
+      op.value = v;
+      lista.appendChild(op);
+    });
+  }
+
+  function rellenarFiltro(select, valores) {
     const anterior = select.value;
     select.innerHTML = '';
     const vacio = document.createElement('option');
     vacio.value = '';
-    vacio.textContent = textoVacio;
+    vacio.textContent = 'Todos';
     select.appendChild(vacio);
     valores.forEach(function (v) {
       const op = document.createElement('option');
@@ -512,9 +559,6 @@
      Arranque
      --------------------------------------------------------- */
 
-  // Dos repintados a la vez pueden pisarse y dejar en pantalla datos viejos.
-  // Con esto solo se pinta uno cada vez; si llegan avisos mientras tanto,
-  // se repinta una sola vez al terminar, ya con los datos definitivos.
   let pintando = false;
   let repintarDespues = false;
 
@@ -523,8 +567,8 @@
     pintando = true;
     try {
       await pintarListas();
-      await pintarPendientes();
-      await pintarCarga();
+      await pintarCamiones();
+      await pintarPesar();
       await pintarRegistro();
       await pintarResumen();
     } finally {

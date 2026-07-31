@@ -23,6 +23,10 @@
 
 * { box-sizing: border-box; }
 
+/* Lo que está marcado como oculto, se oculta. Sin esto, cualquier regla
+   de CSS que dé un "display" al elemento se impone y lo deja visible. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -324,6 +328,16 @@ button, input, select { font-family: inherit; font-size: inherit; }
 }
 .pendiente__datos { font-size: 0.82rem; color: var(--texto-suave); }
 .pendiente__acciones { margin-left: auto; display: flex; gap: 0.4rem; }
+
+/* Viajes ya registrados: en verde, para distinguirlos de las fichas */
+.pendiente--hecho { border-left-color: var(--verde); background: #f5fbf8; }
+.pendiente__peso {
+  margin-left: auto;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--verde);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Selector de camión en la pantalla de carga */
 .selector { display: grid; gap: 0.5rem; }
