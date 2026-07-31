@@ -4,7 +4,7 @@
    instante, mientras comprueba por detrás si hay versión nueva.
    ========================================================= */
 
-const CACHE = 'bascula-v2';
+const CACHE = 'bascula-v3';
 
 const ARCHIVOS = [
   './',
@@ -12,6 +12,8 @@ const ARCHIVOS = [
   './estilos.css',
   './app.js',
   './datos.js',
+  './config.js',
+  './lib/supabase.js',
   './manifest.json',
   './iconos/icono-192.png',
   './iconos/icono-512.png',

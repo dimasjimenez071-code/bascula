@@ -580,9 +580,108 @@
     }
   }
 
-  $('estadoTexto').textContent = Datos.origen;
+  /* ---------------------------------------------------------
+     Acceso
+     --------------------------------------------------------- */
+
+  function mostrarAcceso(mostrar) {
+    $('acceso').hidden = !mostrar;
+    document.querySelector('.pestanas').hidden = mostrar;
+    document.querySelector('.contenido').hidden = mostrar;
+    $('botonSalir').hidden = mostrar;
+  }
+
+  $('formAcceso').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const boton = $('botonEntrar');
+    const error = $('accesoError');
+    error.hidden = true;
+    boton.disabled = true;
+    boton.textContent = 'Entrando…';
+    try {
+      await Datos.entrar($('accesoCorreo').value.trim(), $('accesoClave').value);
+      $('accesoClave').value = '';
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      boton.disabled = false;
+      boton.textContent = 'Entrar';
+    }
+  });
+
+  $('botonSalir').addEventListener('click', async function () {
+    const ok = await confirmar(
+      'Se cerrará la sesión en este dispositivo. Los datos siguen en la nube.',
+      { titulo: 'Cerrar sesión', aceptar: 'Salir' }
+    );
+    if (!ok) return;
+    await Datos.salir();
+  });
+
+  /* --------- Rescate de lo apuntado antes de tener nube --------- */
+
+  function revisarDatosLocales() {
+    const p = Datos.datosLocalesPendientes();
+    $('avisoSubir').hidden = !p;
+    if (!p) return;
+    $('avisoSubirDetalle').textContent =
+      ' — ' + p.camiones + (p.camiones === 1 ? ' camión' : ' camiones') +
+      ' y ' + p.pesajes + (p.pesajes === 1 ? ' viaje' : ' viajes') +
+      ' que todavía no están en la nube.';
+  }
+
+  $('botonSubir').addEventListener('click', async function () {
+    const p = Datos.datosLocalesPendientes();
+    if (!p) return;
+
+    const ok = await confirmar(
+      'Se subirán ' + p.camiones + ' camiones y ' + p.pesajes + ' viajes de este dispositivo. ' +
+      'Los camiones que ya estén en la nube se dejan como están, no se duplican.',
+      { titulo: 'Subir datos', aceptar: 'Subir' }
+    );
+    if (!ok) return;
+
+    this.disabled = true;
+    this.textContent = 'Subiendo…';
+    try {
+      const r = await Datos.subirDatosLocales();
+      avisar('Subidos ' + r.camiones + ' camiones y ' + r.pesajes + ' viajes.', 'exito');
+      revisarDatosLocales();
+      await pintarTodo();
+    } catch (err) {
+      avisar(err.message, 'error');
+    } finally {
+      this.disabled = false;
+      this.textContent = 'Subirlos a la nube';
+    }
+  });
+
+  /* ---------------------------------------------------------
+     Arranque
+     --------------------------------------------------------- */
+
+  async function alCambiarSesion(usuario) {
+    mostrarAcceso(!usuario);
+    $('estadoTexto').textContent = Datos.origen();
+    if (usuario) {
+      await pintarTodo();
+      revisarDatosLocales();
+    }
+  }
+
   Datos.suscribir(pintarTodo);
-  pintarTodo();
+  Datos.alCambiarSesion(alCambiarSesion);
+
+  Datos.iniciar()
+    .then(alCambiarSesion)
+    .catch(function (e) {
+      console.error('No se pudo arrancar:', e);
+      mostrarAcceso(true);
+      $('accesoError').textContent =
+        'No se pudo conectar con la base de datos. Comprueba la cobertura.';
+      $('accesoError').hidden = false;
+    });
 
   // Convierte la web en aplicación instalable y le permite funcionar sin
   // cobertura. Solo se activa servida por internet, no abriendo el archivo.

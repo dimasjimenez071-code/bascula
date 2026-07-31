@@ -51,18 +51,41 @@ dados de alta para mañana.
   va a borrar.
 - Las matrículas se guardan siempre igual (mayúsculas, un solo espacio).
 
-## Estado actual
+## Varias personas a la vez
 
-Los datos se guardan **en el dispositivo donde se apuntan**. Todavía no se
-comparten entre móviles ni ordenadores: es lo siguiente que se va a hacer,
-conectando una base de datos en la nube.
+Los datos viven en una base de datos compartida, así que **lo que apunta uno
+aparece al instante en la pantalla de los demás**, sin recargar y sin importar
+si están en el móvil, en la tablet o en el ordenador de la oficina.
+
+Hace falta iniciar sesión con una cuenta del muelle. Sin cuenta no se ve ni se
+toca nada: la base de datos rechaza cualquier intento de leer o escribir de
+quien no haya entrado.
+
+Cada viaje queda firmado con el usuario que lo registró.
+
+### Dar de alta a una persona
+
+En el panel de Supabase: **Authentication → Users → Add user → Create new
+user**. Se pone su correo y una contraseña, y hay que marcar **Auto Confirm
+User**; si no, la cuenta se queda pendiente de confirmar por correo y no podrá
+entrar.
+
+## Limitación conocida
+
+Registrar un viaje **necesita cobertura**. Si se va la conexión, la pantalla
+sigue mostrando lo ya cargado, pero al guardar avisa de que no hay conexión.
+Queda pendiente guardar los viajes en el móvil y subirlos solos al recuperar
+señal.
 
 ## Archivos
 
 | Archivo | Para qué sirve |
 | --- | --- |
-| `index.html` | La estructura de las cuatro pantallas |
+| `index.html` | La estructura de las pantallas |
 | `estilos.css` | El aspecto visual |
 | `app.js` | La lógica de la interfaz |
-| `datos.js` | Dónde se guardan los datos — el único archivo que cambiará al pasar a la nube |
-| `sw.js` | Permite que funcione sin cobertura |
+| `datos.js` | Habla con la base de datos en la nube |
+| `config.js` | Dirección y clave pública del proyecto de Supabase |
+| `lib/supabase.js` | Librería de Supabase, guardada aquí para no depender de internet |
+| `supabase/esquema.sql` | Las tablas y las reglas de seguridad |
+| `sw.js` | Permite abrir la aplicación sin cobertura |

@@ -81,6 +81,80 @@ button, input, select { font-family: inherit; font-size: inherit; }
   flex: none;
 }
 
+.cabecera__derecha { display: flex; align-items: center; gap: 0.5rem; }
+
+.salir {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 100px;
+  background: none;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.salir:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* =========================================================
+   Pantalla de acceso
+   ========================================================= */
+
+.acceso {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--azul);
+  overflow-y: auto;
+}
+
+.acceso__caja {
+  width: 100%;
+  max-width: 22rem;
+  padding: 2rem 1.75rem;
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+.acceso__icono { font-size: 2.5rem; line-height: 1; }
+.acceso__titulo { margin: 0.5rem 0 0.15rem; font-size: 1.4rem; font-weight: 700; }
+.acceso__sub { margin-bottom: 1.75rem; font-size: 0.88rem; color: var(--texto-suave); }
+.acceso__caja .campo { text-align: left; }
+.acceso__caja .boton { width: 100%; margin-top: 0.5rem; }
+
+.acceso__error {
+  margin-top: 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  background: #fdf3f2;
+  border: 1px solid #f0c2bd;
+  color: var(--rojo);
+  font-size: 0.87rem;
+}
+
+/* =========================================================
+   Aviso de datos pendientes de subir
+   ========================================================= */
+
+.avisoSubir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radio);
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #7c2d12;
+  font-size: 0.9rem;
+}
+.avisoSubir strong { display: block; }
+
 /* =========================================================
    Pestañas
    ========================================================= */

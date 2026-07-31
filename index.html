@@ -27,12 +27,39 @@
           <p class="marca__sub">Control de pesajes · Muelle</p>
         </div>
       </div>
-      <div class="estado" id="estado">
-        <span class="estado__punto"></span>
-        <span id="estadoTexto">Este dispositivo</span>
+      <div class="cabecera__derecha">
+        <div class="estado" id="estado">
+          <span class="estado__punto"></span>
+          <span id="estadoTexto">Conectando…</span>
+        </div>
+        <button class="salir" id="botonSalir" hidden title="Cerrar sesión">Salir</button>
       </div>
     </div>
   </header>
+
+  <!-- Pantalla de acceso: sin cuenta no se ve nada -->
+  <div class="acceso" id="acceso" hidden>
+    <form class="acceso__caja" id="formAcceso" autocomplete="on">
+      <span class="acceso__icono" aria-hidden="true">⚖</span>
+      <h1 class="acceso__titulo">Báscula</h1>
+      <p class="acceso__sub">Control de pesajes del muelle</p>
+
+      <label class="campo">
+        <span class="campo__etiqueta">Correo</span>
+        <input type="email" id="accesoCorreo" class="campo__control" required
+               autocomplete="username" placeholder="nombre@correo.com">
+      </label>
+
+      <label class="campo">
+        <span class="campo__etiqueta">Contraseña</span>
+        <input type="password" id="accesoClave" class="campo__control" required
+               autocomplete="current-password" placeholder="••••••••">
+      </label>
+
+      <button type="submit" class="boton boton--principal" id="botonEntrar">Entrar</button>
+      <p class="acceso__error" id="accesoError" hidden></p>
+    </form>
+  </div>
 
   <nav class="pestanas" role="tablist">
     <button class="pestana activa" data-vista="pesar" role="tab">
@@ -51,6 +78,15 @@
   </nav>
 
   <main class="contenido">
+
+    <!-- Rescate de lo que quedara apuntado antes de tener nube -->
+    <div class="avisoSubir" id="avisoSubir" hidden>
+      <div>
+        <strong>Hay datos guardados solo en este dispositivo</strong>
+        <span id="avisoSubirDetalle"></span>
+      </div>
+      <button class="boton boton--secundario boton--pequeno" id="botonSubir">Subirlos a la nube</button>
+    </div>
 
     <!-- ============ PESAR UNA CARGA ============ -->
     <section class="vista activa" id="vista-pesar">
@@ -243,6 +279,8 @@
     </div>
   </div>
 
+  <script src="lib/supabase.js"></script>
+  <script src="config.js"></script>
   <script src="datos.js"></script>
   <script src="app.js"></script>
 </body>
