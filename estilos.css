@@ -154,6 +154,9 @@ button, input, select { font-family: inherit; font-size: inherit; }
   font-size: 0.9rem;
 }
 .avisoSubir strong { display: block; }
+.avisoSubir__botones { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.avisoSubir .boton--fantasma { color: #7c2d12; }
+.avisoSubir .boton--fantasma:hover { text-decoration: underline; }
 
 /* =========================================================
    Pestañas

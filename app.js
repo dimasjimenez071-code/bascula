@@ -631,6 +631,23 @@
       ' que todavía no están en la nube.';
   }
 
+  $('botonDescartar').addEventListener('click', async function () {
+    const p = Datos.datosLocalesPendientes();
+    if (!p) return;
+
+    const ok = await confirmar(
+      'Los ' + p.camiones + ' camiones y ' + p.pesajes + ' viajes de este dispositivo ' +
+      'dejarán de aparecer y no se subirán. Se guarda una copia por si acaso, ' +
+      'así que se pueden recuperar si resultan hacer falta.',
+      { titulo: 'Descartar datos de prueba', aceptar: 'Descartar' }
+    );
+    if (!ok) return;
+
+    Datos.descartarDatosLocales();
+    revisarDatosLocales();
+    avisar('Descartados. Ya no volverá a avisarte.');
+  });
+
   $('botonSubir').addEventListener('click', async function () {
     const p = Datos.datosLocalesPendientes();
     if (!p) return;

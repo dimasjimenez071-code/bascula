@@ -357,6 +357,15 @@ const Datos = (function () {
       return { camiones: nuevosCamiones, pesajes: filas.length };
     },
 
+    /** Quita el aviso sin subir nada. No destruye los datos: los deja
+        en una copia aparte, por si resultan hacer falta después. */
+    descartarDatosLocales() {
+      const guardado = localStorage.getItem(CLAVE_LOCAL);
+      if (guardado) localStorage.setItem('bascula.copia-descartada', guardado);
+      localStorage.removeItem(CLAVE_LOCAL);
+      avisar();
+    },
+
     /** Qué poner en la esquina de la cabecera. */
     origen() {
       return usuario ? (usuario.email || 'Conectado') : 'Sin conexión';
