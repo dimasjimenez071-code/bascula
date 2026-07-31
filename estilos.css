@@ -286,6 +286,11 @@ button, input, select { font-family: inherit; font-size: inherit; }
 
 .boton--pequeno { padding: 0.55rem 0.9rem; font-size: 0.87rem; }
 
+.boton--rojo { color: var(--rojo); border-color: #f0c2bd; }
+.boton--rojo:hover { background: #fdf3f2; border-color: var(--rojo); }
+
+.tarjeta__botones { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
 .boton--fantasma {
   width: auto;
   padding: 0.35rem 0.6rem;

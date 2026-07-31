@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0b3d5c">
   <title>Báscula — Control de pesajes</title>
+
+  <!-- Para poder instalarla como aplicación -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="iconos/icono-180.png">
+  <link rel="icon" href="iconos/icono.svg" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Báscula">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -142,7 +151,10 @@
       <div class="tarjeta">
         <div class="tarjeta__cabecera">
           <h2 class="tarjeta__titulo">Registro de pesajes</h2>
-          <button class="boton boton--secundario boton--pequeno" id="botonExportar">Exportar a Excel</button>
+          <div class="tarjeta__botones">
+            <button class="boton boton--secundario boton--pequeno" id="botonExportar">Exportar a Excel</button>
+            <button class="boton boton--secundario boton--pequeno boton--rojo" id="botonVaciar">Cerrar jornada</button>
+          </div>
         </div>
 
         <div class="filtros">

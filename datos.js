@@ -55,9 +55,16 @@ const Datos = (function () {
         .sort(function (a, b) { return (a.fechaTara || '').localeCompare(b.fechaTara || ''); });
     },
 
-    /** Pesajes ya cerrados (tara + bruto). */
+    /** Pesajes cerrados de la jornada en curso. */
     async completados() {
-      return (await this.listar()).filter(function (p) { return p.estado === 'completado'; });
+      return (await this.listar()).filter(function (p) {
+        return p.estado === 'completado' && !p.archivado;
+      });
+    },
+
+    /** Pesajes de jornadas ya cerradas. Siguen guardados por si acaso. */
+    async archivados() {
+      return (await this.listar()).filter(function (p) { return p.archivado; });
     },
 
     /** Primer paso: el camión entra vacío y se pesa. */
@@ -122,6 +129,25 @@ const Datos = (function () {
 
     async eliminar(id) {
       escribirTodo(leerTodo().filter(function (p) { return p.id !== id; }));
+    },
+
+    /** Cierre de jornada: los pesajes cerrados dejan de salir en el registro,
+        pero NO se destruyen — quedan archivados por si la descarga del Excel
+        falló o hay que consultar algo después. Los camiones pendientes de
+        cargar no se tocan. */
+    async archivarCompletados() {
+      const lista = leerTodo();
+      const sello = new Date().toISOString();
+      let cuantos = 0;
+      lista.forEach(function (p) {
+        if (p.estado === 'completado' && !p.archivado) {
+          p.archivado = true;
+          p.fechaArchivo = sello;
+          cuantos++;
+        }
+      });
+      escribirTodo(lista);
+      return cuantos;
     },
 
     /** Lista de clientes ya usados, para autocompletar. */

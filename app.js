@@ -358,10 +358,7 @@
 
   /* ---------- Exportar a Excel (formato CSV) ---------- */
 
-  $('botonExportar').addEventListener('click', async function () {
-    const filas = await Datos.completados();
-    if (!filas.length) return avisar('No hay nada que exportar todavía.', 'error');
-
+  function descargarCSV(filas) {
     const cabecera = ['Fecha entrada', 'Fecha salida', 'Matricula', 'Cliente', 'Barco', 'Tara (kg)', 'Bruto (kg)', 'Neto (kg)'];
     const lineas = [cabecera.join(';')];
 
@@ -385,7 +382,41 @@
     enlace.download = 'pesajes-' + new Date().toISOString().slice(0, 10) + '.csv';
     enlace.click();
     URL.revokeObjectURL(enlace.href);
+  }
+
+  $('botonExportar').addEventListener('click', async function () {
+    const filas = await Datos.completados();
+    if (!filas.length) return avisar('No hay nada que exportar todavía.', 'error');
+    descargarCSV(filas);
     avisar('Archivo descargado.', 'exito');
+  });
+
+  /* ---------- Cerrar jornada: descargar el Excel y vaciar el registro ---------- */
+
+  $('botonVaciar').addEventListener('click', async function () {
+    const filas = await Datos.completados();
+    if (!filas.length) return avisar('No hay pesajes que cerrar.', 'error');
+
+    const total = filas.reduce(function (suma, p) { return suma + (p.bruto - p.tara); }, 0);
+    const pendientes = await Datos.pendientes();
+
+    const camiones = pendientes.length === 1
+      ? 'Hay 1 camión pendiente de cargar y se queda como está.'
+      : 'Hay ' + pendientes.length + ' camiones pendientes de cargar y se quedan como están.';
+
+    const ok = await confirmar(
+      'Se descargará el Excel con los ' + filas.length + ' pesajes (' + kg(total) +
+      ') y el registro quedará limpio para mañana. ' +
+      (pendientes.length ? camiones + ' ' : '') +
+      'Los pesajes no se destruyen: quedan archivados por si hiciera falta recuperarlos.',
+      { titulo: 'Cerrar jornada', aceptar: 'Descargar y cerrar' }
+    );
+    if (!ok) return;
+
+    descargarCSV(filas);
+    const archivados = await Datos.archivarCompletados();
+    avisar('Jornada cerrada: ' + archivados + ' pesajes archivados.', 'exito');
+    await pintarTodo();
   });
 
   /* ---------------------------------------------------------
@@ -508,4 +539,14 @@
   $('estadoTexto').textContent = Datos.origen;
   Datos.suscribir(pintarTodo);
   pintarTodo();
+
+  // Convierte la web en aplicación instalable y le permite funcionar sin
+  // cobertura. Solo se activa servida por internet, no abriendo el archivo.
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function (e) {
+        console.warn('No se pudo activar el modo sin conexión:', e);
+      });
+    });
+  }
 })();

@@ -20,6 +20,22 @@ matrícula. Se puede exportar a Excel.
 
 **4 · Resumen** — Cuánta arena lleva cada empresa y el total del barco.
 
+## Instalarla como aplicación
+
+No hace falta descargarla de ninguna tienda. Se abre el enlace en el móvil y se
+elige **"Añadir a pantalla de inicio"** en el menú del navegador. Queda con su
+icono, se abre a pantalla completa sin barra de navegador y **funciona aunque no
+haya cobertura** en el muelle.
+
+## Cerrar la jornada
+
+Al terminar el día, el botón **Cerrar jornada** descarga el Excel con todos los
+pesajes y deja el registro limpio para el día siguiente, sin borrar uno a uno.
+
+Los pesajes no se destruyen: quedan archivados en el dispositivo por si la
+descarga falló o hay que consultar algo. Los camiones que todavía estén
+pendientes de cargar no se tocan.
+
 ## Detalles que evitan errores
 
 - Un mismo camión no puede tener dos taras abiertas a la vez.

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0b3d5c"/>
+  <g stroke="#ffffff" stroke-width="18" stroke-linecap="round" fill="none">
+    <!-- mástil y base -->
+    <path d="M256 132 V372"/>
+    <path d="M188 384 H324"/>
+    <!-- brazo -->
+    <path d="M120 176 H392"/>
+    <!-- cuerdas -->
+    <path d="M120 176 L88 244"/>
+    <path d="M120 176 L152 244"/>
+    <path d="M392 176 L360 244"/>
+    <path d="M392 176 L424 244"/>
+  </g>
+  <!-- platillos -->
+  <path d="M72 244 H168 A48 48 0 0 1 72 244 Z" fill="#ffffff"/>
+  <path d="M344 244 H440 A48 48 0 0 1 344 244 Z" fill="#ffffff"/>
+  <circle cx="256" cy="132" r="24" fill="#ffffff"/>
+</svg>

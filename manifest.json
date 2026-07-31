@@ -1,0 +1,16 @@
+{
+  "name": "Báscula — Control de pesajes",
+  "short_name": "Báscula",
+  "description": "Control de pesajes de camiones en el muelle: tara, carga y arena neta por cliente.",
+  "lang": "es",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b3d5c",
+  "theme_color": "#0b3d5c",
+  "icons": [
+    { "src": "iconos/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "iconos/icono-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
