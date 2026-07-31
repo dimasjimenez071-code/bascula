@@ -364,11 +364,19 @@
      --------------------------------------------------------- */
 
   async function pintarRegistro() {
-    const todos = await Datos.pesajes();
     const esJefe = Datos.esAdmin();
+    await pintarSelectorJornadas();
 
-    // Cerrar la jornada solo lo puede hacer el encargado.
-    $('botonVaciar').hidden = !esJefe;
+    const jornada = $('selectorJornada').value;   // '' = la de hoy
+    const esDeHoy = !jornada;
+
+    const todos = esDeHoy
+      ? await Datos.pesajes()
+      : await Datos.pesajesDeJornada(jornada);
+
+    // Cerrar la jornada solo el encargado, y solo si está viendo la de hoy:
+    // una jornada ya cerrada no se vuelve a cerrar.
+    $('botonVaciar').hidden = !esJefe || !esDeHoy;
 
     const fCliente = $('filtroCliente').value;
     const fBarco = $('filtroBarco').value;
@@ -439,9 +447,61 @@
     if (filtrados.length === 0) {
       $('registroVacio').textContent = todos.length
         ? 'Ningún viaje coincide con el filtro.'
-        : 'Todavía no hay viajes registrados.';
+        : (esDeHoy ? 'Todavía no hay viajes registrados.' : 'Esa jornada no tiene viajes.');
+    }
+
+    // En una jornada cerrada, lo que más se consulta es cuánto se
+    // llevó cada empresa. Se enseña debajo sin tener que sumar a mano.
+    pintarResumenDeJornada(esDeHoy ? null : filtrados);
+  }
+
+  function pintarResumenDeJornada(filas) {
+    const caja = $('resumenJornada');
+    caja.hidden = !filas || !filas.length;
+    if (caja.hidden) return;
+
+    const porCliente = {};
+    let total = 0;
+    filas.forEach(function (p) {
+      const neto = p.bruto - p.tara;
+      total += neto;
+      if (!porCliente[p.cliente]) porCliente[p.cliente] = { peso: 0, viajes: 0 };
+      porCliente[p.cliente].peso += neto;
+      porCliente[p.cliente].viajes++;
+    });
+
+    pintarBloque($('resumenJornadaLista'), porCliente, total, 'viaje', 'viajes');
+  }
+
+  /* Las jornadas ya cerradas, para poder volver a mirarlas. */
+  async function pintarSelectorJornadas() {
+    const jornadas = await Datos.jornadas();
+    const select = $('selectorJornada');
+    const anterior = select.value;
+
+    select.innerHTML = '';
+    const hoy = document.createElement('option');
+    hoy.value = '';
+    hoy.textContent = 'Hoy · jornada abierta';
+    select.appendChild(hoy);
+
+    jornadas.forEach(function (j) {
+      const op = document.createElement('option');
+      op.value = j.dia;
+      const fecha = new Date(j.dia + 'T12:00:00').toLocaleDateString('es-ES', {
+        weekday: 'short', day: '2-digit', month: 'long'
+      });
+      op.textContent = fecha + ' · ' + kg(j.kilos) +
+        (j.barcos.length ? ' · ' + j.barcos.join(', ') : '');
+      select.appendChild(op);
+    });
+
+    if (Array.prototype.some.call(select.options, function (o) { return o.value === anterior; })) {
+      select.value = anterior;
     }
   }
+
+  $('selectorJornada').addEventListener('change', pintarRegistro);
 
   ['filtroCliente', 'filtroBarco', 'filtroMatricula'].forEach(function (id) {
     $(id).addEventListener('input', pintarRegistro);
@@ -449,7 +509,7 @@
 
   /* ---------- Exportar a Excel (formato CSV) ---------- */
 
-  function descargarCSV(filas) {
+  function descargarCSV(filas, nombre) {
     const cabecera = ['Fecha', 'Hora', 'Matricula', 'Cliente', 'Barco', 'Tara (kg)', 'Bruto (kg)', 'Neto (kg)'];
     const lineas = [cabecera.join(';')];
 
@@ -471,15 +531,20 @@
     const blob = new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
     const enlace = document.createElement('a');
     enlace.href = URL.createObjectURL(blob);
-    enlace.download = 'pesajes-' + new Date().toISOString().slice(0, 10) + '.csv';
+    enlace.download = 'pesajes-' + (nombre || new Date().toISOString().slice(0, 10)) + '.csv';
     enlace.click();
     URL.revokeObjectURL(enlace.href);
   }
 
+  // Exporta la jornada que se esté viendo, sea la de hoy o una pasada.
   $('botonExportar').addEventListener('click', async function () {
-    const filas = await Datos.pesajes();
-    if (!filas.length) return avisar('No hay nada que exportar todavía.', 'error');
-    descargarCSV(filas);
+    const jornada = $('selectorJornada').value;
+    const filas = jornada
+      ? await Datos.pesajesDeJornada(jornada)
+      : await Datos.pesajes();
+
+    if (!filas.length) return avisar('No hay nada que exportar en esa jornada.', 'error');
+    descargarCSV(filas, jornada || new Date().toISOString().slice(0, 10));
     avisar('Archivo descargado.', 'exito');
   });
 

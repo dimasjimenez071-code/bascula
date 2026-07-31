@@ -52,6 +52,7 @@ const Datos = (function () {
       barco: f.barco,
       fecha: f.fecha,
       archivado: f.archivado,
+      fechaArchivo: f.fecha_archivo,
       operario: f.operario
     };
   }
@@ -287,6 +288,42 @@ const Datos = (function () {
 
     async archivados() {
       return estado.pesajes.filter(function (p) { return p.archivado; });
+    },
+
+    /** Las jornadas ya cerradas, de la más reciente a la más antigua,
+        con su recuento para poder elegirlas de un vistazo. */
+    async jornadas() {
+      const porDia = {};
+      estado.pesajes.forEach(function (p) {
+        if (!p.archivado) return;
+        const dia = (p.fechaArchivo || p.fecha || '').slice(0, 10);
+        if (!dia) return;
+        if (!porDia[dia]) porDia[dia] = { dia: dia, viajes: 0, kilos: 0, barcos: new Set() };
+        porDia[dia].viajes++;
+        porDia[dia].kilos += p.bruto - p.tara;
+        if (p.barco) porDia[dia].barcos.add(p.barco);
+      });
+
+      return Object.keys(porDia)
+        .sort(function (a, b) { return b.localeCompare(a); })
+        .map(function (dia) {
+          const d = porDia[dia];
+          return {
+            dia: dia,
+            viajes: d.viajes,
+            kilos: d.kilos,
+            barcos: Array.from(d.barcos)
+          };
+        });
+    },
+
+    /** Los viajes de una jornada cerrada concreta. */
+    async pesajesDeJornada(dia) {
+      return estado.pesajes
+        .filter(function (p) {
+          return p.archivado && (p.fechaArchivo || p.fecha || '').slice(0, 10) === dia;
+        })
+        .sort(function (a, b) { return (b.fecha || '').localeCompare(a.fecha || ''); });
     },
 
     async crearPesaje(datos) {

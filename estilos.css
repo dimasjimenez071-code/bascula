@@ -330,6 +330,22 @@ button, input, select { font-family: inherit; font-size: inherit; }
 
 .campo--enLinea { margin: 0; }
 
+/* Selector de jornada: destacado, porque cambia todo lo de debajo */
+.campo--jornada { margin-bottom: 1.1rem; }
+.campo--jornada .campo__control {
+  font-weight: 600;
+  border-color: var(--azul-claro);
+  background: #f4f9fc;
+}
+
+.subtitulo {
+  margin: 1.75rem 0 0.9rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--linea);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .filtros {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

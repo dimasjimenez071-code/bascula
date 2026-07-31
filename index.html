@@ -231,6 +231,13 @@
           </div>
         </div>
 
+        <label class="campo campo--jornada">
+          <span class="campo__etiqueta">Jornada</span>
+          <select id="selectorJornada" class="campo__control">
+            <option value="">Hoy · jornada abierta</option>
+          </select>
+        </label>
+
         <div class="filtros">
           <label class="campo campo--enLinea">
             <span class="campo__etiqueta">Cliente</span>
@@ -271,6 +278,11 @@
           </table>
         </div>
         <p class="vacio" id="registroVacio">Todavía no hay viajes registrados.</p>
+
+        <div id="resumenJornada" hidden>
+          <h3 class="subtitulo">Lo que se llevó cada empresa</h3>
+          <div id="resumenJornadaLista" class="resumen"></div>
+        </div>
       </div>
     </section>
 
