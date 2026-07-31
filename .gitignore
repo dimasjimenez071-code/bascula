@@ -1,0 +1,13 @@
+# Archivos que crea macOS y que no son del proyecto
+.DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+
+# Configuración de editores
+.vscode/
+.idea/
+
+# Registros y temporales
+*.log
+*.tmp
