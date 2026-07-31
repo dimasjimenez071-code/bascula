@@ -585,7 +585,10 @@
       fila.innerHTML =
         '<div class="cupo__cabecera">' +
           '<span class="cupo__nombre"></span>' +
-          '<button class="boton boton--fantasma boton--pequeno">Quitar</button>' +
+          '<div class="cupo__acciones">' +
+            '<button class="boton boton--fantasma boton--pequeno boton--azul" data-accion="cambiar">Cambiar</button>' +
+            '<button class="boton boton--fantasma boton--pequeno" data-accion="quitar">Quitar</button>' +
+          '</div>' +
         '</div>' +
         '<div class="cupo__barra"><i></i></div>' +
         '<div class="cupo__cifras">' +
@@ -617,9 +620,19 @@
         }
       }
 
-      const botonQuitar = fila.querySelector('button');
-      botonQuitar.hidden = !esJefe;
-      botonQuitar.addEventListener('click', async function () {
+      // Cambiar la cantidad y quitar la empresa son cosa del encargado.
+      fila.querySelector('.cupo__acciones').hidden = !esJefe;
+
+      fila.querySelector('[data-accion="cambiar"]').addEventListener('click', function () {
+        $('cupoCliente').value = c.cliente;
+        $('cupoKilos').value = c.kilos || '';
+        $('formCupo').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        $('cupoKilos').focus();
+        $('cupoKilos').select();
+        avisar('Cambia los kilos de ' + c.cliente + ' y dale a Guardar.');
+      });
+
+      fila.querySelector('[data-accion="quitar"]').addEventListener('click', async function () {
         const ok = await confirmar(
           c.cliente + ' dejará de aparecer entre las empresas de este barco' +
           (c.descargado > 0

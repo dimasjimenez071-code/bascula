@@ -611,6 +611,7 @@ button, input, select { font-family: inherit; font-size: inherit; }
   margin-bottom: 0.7rem;
 }
 .cupo__nombre { font-weight: 700; }
+.cupo__acciones { display: flex; gap: 0.1rem; flex: none; }
 
 .cupo__barra {
   height: 8px;

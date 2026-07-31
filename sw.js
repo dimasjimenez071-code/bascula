@@ -4,7 +4,7 @@
    instante, mientras comprueba por detrás si hay versión nueva.
    ========================================================= */
 
-const CACHE = 'bascula-v8';
+const CACHE = 'bascula-v9';
 
 const ARCHIVOS = [
   './',
@@ -40,23 +40,25 @@ self.addEventListener('activate', function (evento) {
   );
 });
 
-// Servimos lo guardado al instante y actualizamos por detrás.
+/* Primero internet, y la copia guardada solo si no hay cobertura.
+   Al revés (servir la copia primero) la gente se quedaba viendo
+   versiones viejas durante días sin enterarse, que es peor que
+   tardar unas décimas más en abrir. */
 self.addEventListener('fetch', function (evento) {
   if (evento.request.method !== 'GET') return;
 
   evento.respondWith(
-    caches.match(evento.request).then(function (guardado) {
-      const desdeLaRed = fetch(evento.request).then(function (respuesta) {
+    fetch(evento.request)
+      .then(function (respuesta) {
         if (respuesta && respuesta.status === 200 && respuesta.type === 'basic') {
           const copia = respuesta.clone();
           caches.open(CACHE).then(function (cache) { cache.put(evento.request, copia); });
         }
         return respuesta;
-      }).catch(function () {
-        return guardado; // sin cobertura: nos quedamos con lo que hay
-      });
-
-      return guardado || desdeLaRed;
-    })
+      })
+      .catch(function () {
+        // Sin cobertura: tiramos de lo último que guardamos.
+        return caches.match(evento.request);
+      })
   );
 });
