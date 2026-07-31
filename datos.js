@@ -60,14 +60,46 @@ const Datos = (function () {
     if (m.indexOf('Failed to fetch') !== -1 || m.indexOf('NetworkError') !== -1) {
       throw new Error('Sin conexión. Comprueba la cobertura e inténtalo otra vez.');
     }
+    if (esDesfaseDeReloj(error)) {
+      throw new Error('El servidor ha tardado en aceptar la sesión. Vuelve a intentarlo en unos segundos.');
+    }
     throw new Error(m);
+  }
+
+  /* A veces las máquinas de Supabase van desacompasadas unas milésimas
+     y rechazan un permiso de entrada recién emitido por considerarlo
+     "del futuro". Es pasajero: se reintenta solo. */
+  function esDesfaseDeReloj(error) {
+    const m = ((error && error.message) || '').toLowerCase();
+    return m.indexOf('issued at future') !== -1 ||
+           m.indexOf('jwt') !== -1 && m.indexOf('future') !== -1;
+  }
+
+  function esperar(ms) {
+    return new Promise(function (r) { setTimeout(r, ms); });
   }
 
   /* ---------------------------------------------------------
      Carga y tiempo real
      --------------------------------------------------------- */
 
+  /* Si el fallo es el desfase de relojes de Supabase, se reintenta
+     solo un par de veces antes de dar la cara al usuario. */
   async function recargar() {
+    const esperas = [0, 1200, 2500];
+    for (let i = 0; i < esperas.length; i++) {
+      if (esperas[i]) await esperar(esperas[i]);
+      try {
+        return await recargarUnaVez();
+      } catch (e) {
+        const ultimo = i === esperas.length - 1;
+        if (ultimo || !esDesfaseDeReloj(e)) throw e;
+        console.warn('Relojes desacompasados, reintentando…');
+      }
+    }
+  }
+
+  async function recargarUnaVez() {
     // Los perfiles se leen siempre: hacen falta para saber si esta
     // cuenta sigue activa, aunque el resto de tablas la rechacen.
     const perfiles = await cliente.from('perfiles').select('*');
