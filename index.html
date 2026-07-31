@@ -75,7 +75,23 @@
     <button class="pestana" data-vista="resumen" role="tab">
       <span class="pestana__icono">Σ</span> Resumen
     </button>
+    <button class="pestana" data-vista="usuarios" role="tab" id="pestanaUsuarios" hidden>
+      <span class="pestana__icono">★</span> Usuarios
+    </button>
   </nav>
+
+  <!-- Cuenta apagada por el jefe -->
+  <div class="acceso" id="desactivado" hidden>
+    <div class="acceso__caja">
+      <span class="acceso__icono" aria-hidden="true">🔒</span>
+      <h1 class="acceso__titulo">Acceso desactivado</h1>
+      <p class="acceso__sub">
+        Este usuario no está activo hoy. Habla con el encargado para que
+        lo active, o entra con otro que sí lo esté.
+      </p>
+      <button type="button" class="boton boton--principal" id="botonSalirDesactivado">Salir</button>
+    </div>
+  </div>
 
   <main class="contenido">
 
@@ -248,6 +264,30 @@
 
     <!-- ============ RESUMEN ============ -->
     <section class="vista" id="vista-resumen">
+
+      <div class="tarjeta">
+        <h2 class="tarjeta__titulo">Lo que se lleva cada empresa hoy</h2>
+        <p class="tarjeta__ayuda">Apunta cuántos kilos tiene asignados cada una y la aplicación va descontando lo que se descarga.</p>
+
+        <form id="formCupo" class="formLinea" autocomplete="off">
+          <label class="campo">
+            <span class="campo__etiqueta">Empresa</span>
+            <input type="text" id="cupoCliente" class="campo__control" placeholder="Nombre de la empresa" required list="listaClientes">
+          </label>
+          <label class="campo">
+            <span class="campo__etiqueta">Tiene que llevarse</span>
+            <div class="campo__conUnidad">
+              <input type="number" id="cupoKilos" class="campo__control campo__control--numero"
+                     placeholder="0" required min="1" step="1" inputmode="numeric">
+              <span class="campo__unidad">kg</span>
+            </div>
+          </label>
+          <button type="submit" class="boton boton--principal">Guardar</button>
+        </form>
+
+        <div id="listaCupos" class="resumen"></div>
+      </div>
+
       <div class="tarjeta">
         <h2 class="tarjeta__titulo">Total por cliente</h2>
         <p class="tarjeta__ayuda">Suma de arena neta descargada, por empresa.</p>
@@ -263,6 +303,19 @@
         <span class="totalGeneral__etiqueta">Total descargado</span>
         <span class="totalGeneral__valor" id="totalGeneral">0 kg</span>
         <span class="totalGeneral__detalle" id="totalGeneralDetalle">0 viajes</span>
+      </div>
+    </section>
+
+    <!-- ============ USUARIOS (solo el jefe) ============ -->
+    <section class="vista" id="vista-usuarios">
+      <div class="tarjeta">
+        <h2 class="tarjeta__titulo">Quién puede trabajar hoy</h2>
+        <p class="tarjeta__ayuda">
+          Enciende solo a los que estén de turno. El que esté apagado no puede ver
+          ni apuntar nada, aunque sepa su contraseña. Ponles el nombre de la persona
+          a la que le has dado cada usuario, para saber después quién apuntó qué.
+        </p>
+        <div id="listaUsuarios" class="lista"></div>
       </div>
     </section>
 

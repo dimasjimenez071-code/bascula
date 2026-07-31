@@ -574,6 +574,144 @@ button, input, select { font-family: inherit; font-size: inherit; }
 .totalGeneral__detalle { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
 
 /* =========================================================
+   Cupos: lo que se lleva cada empresa
+   ========================================================= */
+
+.formLinea {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1.5rem;
+}
+.formLinea .campo { margin: 0; }
+.formLinea .boton { width: auto; padding: 0.8rem 1.4rem; }
+
+@media (max-width: 620px) {
+  .formLinea { grid-template-columns: 1fr; }
+  .formLinea .boton { width: 100%; }
+}
+
+.cupo {
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+}
+.cupo--completo { border-color: #b7e4c7; background: #f5fbf8; }
+
+.cupo__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+.cupo__nombre { font-weight: 700; }
+
+.cupo__barra {
+  height: 8px;
+  border-radius: 100px;
+  background: var(--linea);
+  overflow: hidden;
+}
+.cupo__barra i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: var(--azul-claro);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cupo--completo .cupo__barra i { background: var(--verde); }
+
+.cupo__cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+.cupo__cifras b { color: var(--texto); font-variant-numeric: tabular-nums; }
+.cupo__total { margin-left: auto; }
+.cupo__pasado { color: var(--ambar); }
+
+/* =========================================================
+   Usuarios
+   ========================================================= */
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--linea);
+  border-left: 4px solid var(--linea);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+.usuario--activo { border-left-color: var(--verde); background: #fff; }
+
+.usuario__datos { flex: 1; min-width: 0; }
+.usuario__correo {
+  font-size: 0.82rem;
+  color: var(--texto-suave);
+  margin-bottom: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.usuario__nombre {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.usuario__nombre:focus {
+  outline: none;
+  border-color: var(--azul-claro);
+  box-shadow: 0 0 0 3px rgba(20, 97, 140, 0.15);
+}
+
+.etiquetaJefe {
+  padding: 0.3rem 0.7rem;
+  border-radius: 100px;
+  background: var(--azul);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.interruptor {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 100px;
+  background: #cfd6de;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+.interruptor.encendido { background: var(--verde); }
+.interruptor:disabled { opacity: 0.5; cursor: wait; }
+
+.interruptor__bola {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.interruptor.encendido .interruptor__bola { transform: translateX(22px); }
+
+/* =========================================================
    Avisos y mensajes
    ========================================================= */
 

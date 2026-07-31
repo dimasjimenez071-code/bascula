@@ -518,6 +518,156 @@
   }
 
   /* ---------------------------------------------------------
+     CUPOS: lo que se lleva cada empresa
+     --------------------------------------------------------- */
+
+  $('formCupo').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const cliente = $('cupoCliente').value.trim();
+    const kilos = parseInt($('cupoKilos').value, 10);
+
+    if (!cliente) return avisar('Falta el nombre de la empresa.', 'error');
+    if (!kilos || kilos <= 0) return avisar('Los kilos no son válidos.', 'error');
+
+    try {
+      const r = await Datos.guardarCupo({ cliente: cliente, kilos: kilos });
+      this.reset();
+      $('cupoCliente').focus();
+      avisar(r.actualizado
+        ? cliente + ': ' + kg(r.anterior) + ' → ' + kg(kilos)
+        : cliente + ' tiene que llevarse ' + kg(kilos), 'exito');
+      await pintarTodo();
+    } catch (err) {
+      avisar(err.message, 'error');
+    }
+  });
+
+  async function pintarCupos() {
+    const cupos = await Datos.cupos();
+    const caja = $('listaCupos');
+
+    if (!cupos.length) {
+      caja.innerHTML = '<p class="vacio">Todavía no hay ninguna empresa con cantidad asignada.</p>';
+      return;
+    }
+
+    caja.innerHTML = '';
+    cupos.forEach(function (c) {
+      const terminado = c.falta === 0;
+      const fila = document.createElement('div');
+      fila.className = 'cupo' + (terminado ? ' cupo--completo' : '');
+      fila.innerHTML =
+        '<div class="cupo__cabecera">' +
+          '<span class="cupo__nombre"></span>' +
+          '<button class="boton boton--fantasma boton--pequeno">Quitar</button>' +
+        '</div>' +
+        '<div class="cupo__barra"><i></i></div>' +
+        '<div class="cupo__cifras">' +
+          '<span><b class="cupo__hecho"></b> descargado</span>' +
+          '<span><b class="cupo__falta"></b> <span class="cupo__faltaTexto"></span></span>' +
+          '<span class="cupo__total"></span>' +
+        '</div>';
+
+      fila.querySelector('.cupo__nombre').textContent = c.cliente;
+      fila.querySelector('.cupo__barra i').style.width = c.porcentaje + '%';
+      fila.querySelector('.cupo__hecho').textContent = kg(c.descargado);
+      fila.querySelector('.cupo__total').textContent = 'de ' + kg(c.kilos);
+
+      if (c.pasado > 0) {
+        fila.querySelector('.cupo__falta').textContent = kg(c.pasado);
+        fila.querySelector('.cupo__faltaTexto').textContent = 'de más';
+        fila.querySelector('.cupo__falta').classList.add('cupo__pasado');
+      } else {
+        fila.querySelector('.cupo__falta').textContent = kg(c.falta);
+        fila.querySelector('.cupo__faltaTexto').textContent = terminado ? 'pendiente' : 'por descargar';
+      }
+
+      fila.querySelector('button').addEventListener('click', async function () {
+        const ok = await confirmar(
+          'Se quitará la cantidad asignada a ' + c.cliente + ' (' + kg(c.kilos) + '). ' +
+          'Los viajes ya registrados no se tocan.',
+          { titulo: 'Quitar cantidad', aceptar: 'Quitar' }
+        );
+        if (!ok) return;
+        await Datos.eliminarCupo(c.id);
+        avisar('Cantidad quitada.');
+        await pintarTodo();
+      });
+
+      caja.appendChild(fila);
+    });
+  }
+
+  /* ---------------------------------------------------------
+     USUARIOS: solo lo ve el jefe
+     --------------------------------------------------------- */
+
+  async function pintarUsuarios() {
+    const esJefe = Datos.esAdmin();
+    $('pestanaUsuarios').hidden = !esJefe;
+    if (!esJefe) return;
+
+    const perfiles = await Datos.perfiles();
+    const yo = Datos.miPerfil();
+    const caja = $('listaUsuarios');
+    caja.innerHTML = '';
+
+    perfiles.forEach(function (p) {
+      const esJefeEste = p.rol === 'admin';
+      const soyYo = yo && p.id === yo.id;
+
+      const fila = document.createElement('div');
+      fila.className = 'usuario' + (p.activo ? ' usuario--activo' : '');
+      fila.innerHTML =
+        '<div class="usuario__datos">' +
+          '<div class="usuario__correo"></div>' +
+          '<input type="text" class="usuario__nombre" placeholder="Nombre de la persona" maxlength="40">' +
+        '</div>' +
+        '<div class="usuario__control"></div>';
+
+      fila.querySelector('.usuario__correo').textContent = p.correo || '(sin correo)';
+
+      const nombre = fila.querySelector('.usuario__nombre');
+      nombre.value = p.nombre || '';
+      nombre.addEventListener('change', async function () {
+        try {
+          await Datos.cambiarNombre(p.id, this.value.trim());
+          avisar('Nombre guardado.');
+        } catch (err) {
+          avisar(err.message, 'error');
+        }
+      });
+
+      const control = fila.querySelector('.usuario__control');
+
+      if (esJefeEste) {
+        control.innerHTML = '<span class="etiquetaJefe">Encargado</span>';
+        if (soyYo) nombre.placeholder = 'Tu nombre';
+      } else {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'interruptor' + (p.activo ? ' encendido' : '');
+        boton.setAttribute('aria-label', p.activo ? 'Desactivar' : 'Activar');
+        boton.innerHTML = '<span class="interruptor__bola"></span>';
+        boton.addEventListener('click', async function () {
+          boton.disabled = true;
+          try {
+            await Datos.cambiarActivo(p.id, !p.activo);
+            avisar((p.correo || 'Usuario') + (p.activo ? ' desactivado.' : ' activado.'), 'exito');
+            await pintarTodo();
+          } catch (err) {
+            avisar(err.message, 'error');
+            boton.disabled = false;
+          }
+        });
+        control.appendChild(boton);
+      }
+
+      caja.appendChild(fila);
+    });
+  }
+
+  /* ---------------------------------------------------------
      Listas de autocompletado y filtros
      --------------------------------------------------------- */
 
@@ -566,11 +716,14 @@
     if (pintando) { repintarDespues = true; return; }
     pintando = true;
     try {
+      revisarSiEstoyActivo();
       await pintarListas();
       await pintarCamiones();
       await pintarPesar();
       await pintarRegistro();
       await pintarResumen();
+      await pintarCupos();
+      await pintarUsuarios();
     } finally {
       pintando = false;
       if (repintarDespues) {
@@ -678,8 +831,26 @@
      Arranque
      --------------------------------------------------------- */
 
+  /* Si el jefe apaga esta cuenta mientras está abierta, la pantalla
+     se bloquea sola en cuanto llega el aviso. */
+  function revisarSiEstoyActivo() {
+    const perfil = Datos.miPerfil();
+    const bloqueado = !!(perfil && !perfil.activo);
+    $('desactivado').hidden = !bloqueado;
+    if (bloqueado) {
+      document.querySelector('.pestanas').hidden = true;
+      document.querySelector('.contenido').hidden = true;
+    }
+  }
+
+  $('botonSalirDesactivado').addEventListener('click', async function () {
+    await Datos.salir();
+    $('desactivado').hidden = true;
+  });
+
   async function alCambiarSesion(usuario) {
     mostrarAcceso(!usuario);
+    if (!usuario) $('desactivado').hidden = true;
     $('estadoTexto').textContent = Datos.origen();
     if (usuario) {
       await pintarTodo();

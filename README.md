@@ -22,8 +22,26 @@ cantarla y confirmarla. Se repite tantas veces como viajes haga el camión.
 **Registro** — Todos los viajes del día, con filtros por cliente, barco y
 matrícula. Se puede exportar a Excel.
 
-**Resumen** — Cuánta arena lleva cada empresa, cuántos viajes ha hecho cada
-camión y el total del barco.
+**Resumen** — Lo que tiene que llevarse cada empresa ese día, cuánto lleva
+descargado y cuánto le falta, con su barra de avance. Debajo, los totales por
+cliente, los viajes de cada camión y el total del barco.
+
+**Usuarios** — Solo la ve el encargado. Una lista de todos los usuarios con un
+interruptor para encender a los que están de turno hoy y apagar al resto, y un
+campo para anotar a quién se le ha dado cada uno.
+
+## Quién manda
+
+Hay dos tipos de cuenta:
+
+- **Encargado**: ve la pestaña de Usuarios y decide quién puede trabajar cada
+  día.
+- **Operario**: usuarios genéricos (`usuario1`, `usuario2`…) que se reparten
+  entre la gente del turno.
+
+El bloqueo está en la base de datos, no en la pantalla: un usuario apagado no
+puede leer ni escribir nada aunque sepa su contraseña. Si el encargado apaga a
+alguien mientras lo tiene abierto, su pantalla se bloquea sola en el momento.
 
 ## Instalarla como aplicación
 

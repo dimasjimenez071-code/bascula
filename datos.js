@@ -23,7 +23,7 @@ const Datos = (function () {
 
   // Copia en memoria de lo que hay en la nube, para que la pantalla
   // responda al instante sin esperar a internet en cada toque.
-  let estado = { camiones: [], pesajes: [] };
+  let estado = { camiones: [], pesajes: [], cupos: [], perfiles: [] };
   let usuario = null;
   let canal = null;
 
@@ -68,16 +68,35 @@ const Datos = (function () {
      --------------------------------------------------------- */
 
   async function recargar() {
-    const [camiones, pesajes] = await Promise.all([
+    // Los perfiles se leen siempre: hacen falta para saber si esta
+    // cuenta sigue activa, aunque el resto de tablas la rechacen.
+    const perfiles = await cliente.from('perfiles').select('*');
+    if (perfiles.error) reventar(perfiles.error, 'cargando usuarios');
+
+    const mio = perfiles.data.find(function (p) {
+      return usuario && p.id === usuario.id;
+    });
+
+    if (mio && !mio.activo) {
+      estado = { camiones: [], pesajes: [], cupos: [], perfiles: perfiles.data };
+      avisar();
+      return;
+    }
+
+    const [camiones, pesajes, cupos] = await Promise.all([
       cliente.from('camiones').select('*'),
-      cliente.from('pesajes').select('*')
+      cliente.from('pesajes').select('*'),
+      cliente.from('cupos').select('*')
     ]);
     if (camiones.error) reventar(camiones.error, 'cargando camiones');
     if (pesajes.error) reventar(pesajes.error, 'cargando pesajes');
+    if (cupos.error) reventar(cupos.error, 'cargando cupos');
 
     estado = {
       camiones: camiones.data.map(aCamion),
-      pesajes: pesajes.data.map(aPesaje)
+      pesajes: pesajes.data.map(aPesaje),
+      cupos: cupos.data,
+      perfiles: perfiles.data
     };
     avisar();
   }
@@ -88,6 +107,8 @@ const Datos = (function () {
       .channel('bascula')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'camiones' }, recargar)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pesajes' }, recargar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cupos' }, recargar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, recargar)
       .subscribe();
   }
 
@@ -257,17 +278,125 @@ const Datos = (function () {
       await recargar();
     },
 
+    /** Cierre de jornada: se archivan los viajes y también los cupos,
+        para empezar mañana con la hoja en blanco. */
     async archivarPesajes() {
       const abiertos = estado.pesajes.filter(function (p) { return !p.archivado; });
-      if (!abiertos.length) return 0;
+      const sello = new Date().toISOString();
 
-      const { error } = await cliente
-        .from('pesajes')
-        .update({ archivado: true, fecha_archivo: new Date().toISOString() })
-        .eq('archivado', false);
-      if (error) reventar(error, 'cerrando la jornada');
+      if (abiertos.length) {
+        const { error } = await cliente
+          .from('pesajes')
+          .update({ archivado: true, fecha_archivo: sello })
+          .eq('archivado', false);
+        if (error) reventar(error, 'cerrando la jornada');
+      }
+
+      if (estado.cupos.some(function (c) { return !c.archivado; })) {
+        const { error } = await cliente
+          .from('cupos')
+          .update({ archivado: true, fecha_archivo: sello })
+          .eq('archivado', false);
+        if (error) reventar(error, 'cerrando los cupos');
+      }
+
       await recargar();
       return abiertos.length;
+    },
+
+    /* ============ CUPOS ============ */
+
+    /** Lo que cada empresa tiene que llevarse en la jornada, con lo
+        descargado y lo que falta ya calculado. */
+    async cupos() {
+      const descargado = {};
+      estado.pesajes.forEach(function (p) {
+        if (p.archivado) return;
+        descargado[p.cliente] = (descargado[p.cliente] || 0) + (p.bruto - p.tara);
+      });
+
+      return estado.cupos
+        .filter(function (c) { return !c.archivado; })
+        .map(function (c) {
+          const hecho = descargado[c.cliente] || 0;
+          return {
+            id: c.id,
+            cliente: c.cliente,
+            kilos: c.kilos,
+            barco: c.barco,
+            descargado: hecho,
+            falta: Math.max(0, c.kilos - hecho),
+            pasado: Math.max(0, hecho - c.kilos),
+            porcentaje: Math.min(100, Math.round((hecho / c.kilos) * 100))
+          };
+        })
+        .sort(function (a, b) { return a.cliente.localeCompare(b.cliente, 'es'); });
+    },
+
+    /** Fija o corrige el cupo de una empresa. */
+    async guardarCupo(datos) {
+      const abierto = estado.cupos.find(function (c) {
+        return !c.archivado && c.cliente === datos.cliente;
+      });
+
+      if (abierto) {
+        const { error } = await cliente
+          .from('cupos')
+          .update({ kilos: datos.kilos, barco: datos.barco || '' })
+          .eq('id', abierto.id);
+        if (error) reventar(error, 'actualizando el cupo');
+        await recargar();
+        return { actualizado: true, anterior: abierto.kilos };
+      }
+
+      const { error } = await cliente.from('cupos').insert({
+        cliente: datos.cliente,
+        kilos: datos.kilos,
+        barco: datos.barco || '',
+        creado_por: usuario ? usuario.id : null
+      });
+      if (error) reventar(error, 'fijando el cupo');
+      await recargar();
+      return { actualizado: false };
+    },
+
+    async eliminarCupo(id) {
+      const { error } = await cliente.from('cupos').delete().eq('id', id);
+      if (error) reventar(error, 'quitando el cupo');
+      await recargar();
+    },
+
+    /* ============ USUARIOS ============ */
+
+    /** La ficha del que está usando la aplicación ahora. */
+    miPerfil() {
+      if (!usuario) return null;
+      return estado.perfiles.find(function (p) { return p.id === usuario.id; }) || null;
+    },
+
+    esAdmin() {
+      const p = this.miPerfil();
+      return !!(p && p.activo && p.rol === 'admin');
+    },
+
+    /** Todos los usuarios: los activos primero, y por nombre. */
+    async perfiles() {
+      return estado.perfiles.slice().sort(function (a, b) {
+        if (a.rol !== b.rol) return a.rol === 'admin' ? -1 : 1;
+        return (a.correo || '').localeCompare(b.correo || '', 'es', { numeric: true });
+      });
+    },
+
+    async cambiarActivo(id, activo) {
+      const { error } = await cliente.from('perfiles').update({ activo: activo }).eq('id', id);
+      if (error) reventar(error, 'cambiando el acceso');
+      await recargar();
+    },
+
+    async cambiarNombre(id, nombre) {
+      const { error } = await cliente.from('perfiles').update({ nombre: nombre }).eq('id', id);
+      if (error) reventar(error, 'cambiando el nombre');
+      await recargar();
     },
 
     /* ============ LISTAS DE APOYO ============ */
