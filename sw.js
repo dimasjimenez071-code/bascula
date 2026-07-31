@@ -4,7 +4,7 @@
    instante, mientras comprueba por detrás si hay versión nueva.
    ========================================================= */
 
-const CACHE = 'bascula-v9';
+const CACHE = 'bascula-v10';
 
 const ARCHIVOS = [
   './',

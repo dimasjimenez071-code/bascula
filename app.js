@@ -118,8 +118,21 @@
      CAMIONES
      --------------------------------------------------------- */
 
-  $('camionMatricula').addEventListener('blur', function () {
+  $('camionMatricula').addEventListener('blur', async function () {
     this.value = normalizarPlaca(this.value);
+    if (!this.value) return;
+
+    // Si el camión ya existe, recuperamos su empresa para no borrársela
+    // sin querer al volver a tararlo.
+    const camiones = await Datos.camiones();
+    const yaEsta = camiones.find(function (c) { return c.matricula === $('camionMatricula').value; });
+    if (!yaEsta) return;
+
+    const sel = $('camionEmpresa');
+    if (yaEsta.empresa && Array.from(sel.options).some(function (o) { return o.value === yaEsta.empresa; })) {
+      sel.value = yaEsta.empresa;
+    }
+    avisar(yaEsta.matricula + ' ya está dado de alta con ' + kg(yaEsta.tara) + '. Al guardar se actualizará.');
   });
 
   $('formCamion').addEventListener('submit', async function (e) {
@@ -130,7 +143,8 @@
     if (!matricula) return avisar('Falta la matrícula.', 'error');
     if (!tara || tara <= 0) return avisar('El peso de la tara no es válido.', 'error');
 
-    const res = await Datos.guardarCamion({ matricula: matricula, tara: tara });
+    const empresa = $('camionEmpresa').value;
+    const res = await Datos.guardarCamion({ matricula: matricula, tara: tara, empresa: empresa });
     this.reset();
     $('camionMatricula').focus();
 
@@ -174,12 +188,14 @@
 
       fila.querySelector('.pendiente__placa').textContent = c.matricula;
       fila.querySelector('.pendiente__datos').textContent =
-        'Tara ' + kg(c.tara) + ' · desde el ' + fechaCorta(c.fechaTara) +
+        (c.empresa ? c.empresa + ' · ' : '') +
+        'Tara ' + kg(c.tara) +
         ' · ' + (n === 1 ? '1 viaje hoy' : n + ' viajes hoy');
 
       const botones = fila.querySelectorAll('button');
       botones[0].addEventListener('click', function () {
         camionElegido = c.id;
+        ponerEmpresaDelCamion(c);
         irA('pesar');
         pintarPesar().then(function () { $('pesajeBruto').focus(); });
       });
@@ -203,6 +219,27 @@
      PESAR UNA CARGA
      --------------------------------------------------------- */
 
+  /* Al elegir un camión se pone sola su empresa habitual, pero se puede
+     cambiar: a veces un camión hace un viaje para otra. */
+  function ponerEmpresaDelCamion(camion) {
+    if (!camion) return;
+    const sel = $('pesajeCliente');
+    if (!camion.empresa) return;   // sin empresa fija: se respeta lo que hubiera
+
+    const existe = Array.from(sel.options).some(function (o) {
+      return o.value === camion.empresa;
+    });
+
+    if (existe) {
+      sel.value = camion.empresa;
+    } else {
+      // Su empresa no está entre las del barco de hoy: mejor que lo elija
+      // a mano que colgarle el viaje a la empresa equivocada.
+      sel.value = '';
+      avisar(camion.empresa + ' no está entre las empresas de hoy. Elige una.', 'error');
+    }
+  }
+
   async function pintarPesar() {
     const camiones = await Datos.camiones();
     const viajes = await Datos.viajesDeHoy();
@@ -224,9 +261,11 @@
       opcion.innerHTML = '<span class="selector__placa"></span><span class="selector__meta"></span>';
       opcion.querySelector('.selector__placa').textContent = c.matricula;
       opcion.querySelector('.selector__meta').textContent =
+        (c.empresa ? c.empresa + ' · ' : '') +
         'Tara ' + kg(c.tara) + (n ? ' · ' + n + (n === 1 ? ' viaje' : ' viajes') : '');
       opcion.addEventListener('click', function () {
         camionElegido = c.id;
+        ponerEmpresaDelCamion(c);
         pintarPesar().then(function () { $('pesajeBruto').focus(); });
       });
       selector.appendChild(opcion);
@@ -846,6 +885,7 @@
     // El cliente ya no se escribe: se elige entre las del día.
     rellenarSelect($('pesajeCliente'), empresas, 'Elige la empresa…');
     rellenarSelect($('editarCliente'), empresas, 'Elige la empresa…');
+    rellenarSelect($('camionEmpresa'), empresas, 'Sin empresa fija');
     $('sinEmpresas').hidden = empresas.length > 0;
   }
 

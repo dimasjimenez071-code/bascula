@@ -32,7 +32,13 @@ const Datos = (function () {
      --------------------------------------------------------- */
 
   function aCamion(f) {
-    return { id: f.id, matricula: f.matricula, tara: f.tara, fechaTara: f.fecha_tara };
+    return {
+      id: f.id,
+      matricula: f.matricula,
+      tara: f.tara,
+      empresa: f.empresa || '',
+      fechaTara: f.fecha_tara
+    };
   }
 
   function aPesaje(f) {
@@ -228,7 +234,11 @@ const Datos = (function () {
         const taraAnterior = existente.tara;
         const { data, error } = await cliente
           .from('camiones')
-          .update({ tara: datos.tara, fecha_tara: new Date().toISOString() })
+          .update({
+            tara: datos.tara,
+            empresa: datos.empresa || '',
+            fecha_tara: new Date().toISOString()
+          })
           .eq('id', existente.id)
           .select()
           .single();
@@ -242,6 +252,7 @@ const Datos = (function () {
         .insert({
           matricula: datos.matricula,
           tara: datos.tara,
+          empresa: datos.empresa || '',
           creado_por: usuario ? usuario.id : null
         })
         .select()

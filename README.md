@@ -9,8 +9,9 @@ Funciona en móvil, tablet y ordenador. No hay que instalar nada.
 
 ## Cómo se usa
 
-**Camiones** — Se pesa el camión vacío y se guarda su matrícula con la tara. Se
-hace una vez. Si algún día se vuelve a tarar, se escribe otra vez la misma
+**Camiones** — Se pesa el camión vacío y se guarda su matrícula con la tara, y de
+paso la empresa a la que suele trabajar: así al pesarlo sale ya elegida y solo
+hay que cambiarla el día que haga un viaje para otra. Se hace una vez. Si algún día se vuelve a tarar, se escribe otra vez la misma
 matrícula con el peso nuevo y se actualiza; **los viajes ya registrados
 conservan la tara que tenían**, así que las cuentas de días anteriores no
 cambian.

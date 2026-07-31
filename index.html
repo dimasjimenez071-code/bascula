@@ -199,6 +199,13 @@
             </div>
           </label>
 
+          <label class="campo">
+            <span class="campo__etiqueta">Empresa del camión <span class="campo__opcional">(se pondrá sola al pesarlo)</span></span>
+            <select id="camionEmpresa" class="campo__control">
+              <option value="">Sin empresa fija</option>
+            </select>
+          </label>
+
           <button type="submit" class="boton boton--principal">Guardar camión</button>
         </form>
       </div>
@@ -270,6 +277,13 @@
     <!-- ============ RESUMEN ============ -->
     <section class="vista" id="vista-resumen">
 
+      <!-- Arriba del todo: es lo que se mira cada dos por tres -->
+      <div class="tarjeta tarjeta--total">
+        <span class="totalGeneral__etiqueta">Total descargado</span>
+        <span class="totalGeneral__valor" id="totalGeneral">0 kg</span>
+        <span class="totalGeneral__detalle" id="totalGeneralDetalle">0 viajes</span>
+      </div>
+
       <div class="tarjeta">
         <h2 class="tarjeta__titulo">Empresas del barco de hoy</h2>
         <p class="tarjeta__ayuda" id="ayudaEmpresas">
@@ -305,12 +319,6 @@
       <div class="tarjeta">
         <h2 class="tarjeta__titulo">Viajes por camión</h2>
         <div id="resumenCamiones" class="resumen"></div>
-      </div>
-
-      <div class="tarjeta tarjeta--total">
-        <span class="totalGeneral__etiqueta">Total descargado</span>
-        <span class="totalGeneral__valor" id="totalGeneral">0 kg</span>
-        <span class="totalGeneral__detalle" id="totalGeneralDetalle">0 viajes</span>
       </div>
     </section>
 
