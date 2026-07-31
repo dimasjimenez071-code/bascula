@@ -639,7 +639,7 @@
       'Los ' + p.camiones + ' camiones y ' + p.pesajes + ' viajes de este dispositivo ' +
       'dejarán de aparecer y no se subirán. Se guarda una copia por si acaso, ' +
       'así que se pueden recuperar si resultan hacer falta.',
-      { titulo: 'Descartar datos de prueba', aceptar: 'Descartar' }
+      { titulo: 'Descartar datos', aceptar: 'Descartar' }
     );
     if (!ok) return;
 
