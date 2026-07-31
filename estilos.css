@@ -367,7 +367,11 @@ button, input, select { font-family: inherit; font-size: inherit; }
 
 .boton--pequeno { padding: 0.55rem 0.9rem; font-size: 0.87rem; }
 
+.boton--azul { color: var(--azul-claro); }
 .boton--rojo { color: var(--rojo); border-color: #f0c2bd; }
+
+/* Botones de la columna de acciones del registro */
+.tabla .acciones { display: flex; gap: 0.15rem; white-space: nowrap; }
 .boton--rojo:hover { background: #fdf3f2; border-color: var(--rojo); }
 
 .tarjeta__botones { display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -774,6 +778,20 @@ button, input, select { font-family: inherit; font-size: inherit; }
 }
 .modal__titulo { margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700; }
 .modal__texto { margin-bottom: 1.5rem; color: var(--texto-suave); }
+
+.modal__caja--ancha {
+  max-width: 30rem;
+  max-height: 88vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.modal__caja--ancha .modal__texto {
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  background: var(--fondo);
+  font-size: 0.85rem;
+}
+.modal__caja--ancha .neto { margin: 1rem 0 1.5rem; }
 
 .modal__acciones {
   display: flex;

@@ -146,10 +146,15 @@
 
           <label class="campo">
             <span class="campo__etiqueta">Cliente</span>
-            <input type="text" id="pesajeCliente" class="campo__control"
-                   placeholder="Empresa a la que va la arena" required list="listaClientes">
-            <datalist id="listaClientes"></datalist>
+            <select id="pesajeCliente" class="campo__control" required>
+              <option value="">Elige la empresa…</option>
+            </select>
           </label>
+
+          <div class="aviso" id="sinEmpresas" hidden>
+            El encargado todavía no ha registrado las empresas de este barco.
+            Hasta que lo haga no se pueden apuntar viajes.
+          </div>
 
           <label class="campo">
             <span class="campo__etiqueta">Barco <span class="campo__opcional">(se recuerda entre viajes)</span></span>
@@ -215,7 +220,7 @@
           <h2 class="tarjeta__titulo">Registro de pesajes</h2>
           <div class="tarjeta__botones">
             <button class="boton boton--secundario boton--pequeno" id="botonExportar">Exportar a Excel</button>
-            <button class="boton boton--secundario boton--pequeno boton--rojo" id="botonVaciar">Cerrar jornada</button>
+            <button class="boton boton--secundario boton--pequeno boton--rojo" id="botonVaciar" hidden>Cerrar jornada</button>
           </div>
         </div>
 
@@ -266,23 +271,26 @@
     <section class="vista" id="vista-resumen">
 
       <div class="tarjeta">
-        <h2 class="tarjeta__titulo">Lo que se lleva cada empresa hoy</h2>
-        <p class="tarjeta__ayuda">Apunta cuántos kilos tiene asignados cada una y la aplicación va descontando lo que se descarga.</p>
+        <h2 class="tarjeta__titulo">Empresas del barco de hoy</h2>
+        <p class="tarjeta__ayuda" id="ayudaEmpresas">
+          Estas son las únicas empresas que se pueden elegir al pesar, para que
+          nadie escriba una a mano y salgan duplicadas por una letra.
+        </p>
 
-        <form id="formCupo" class="formLinea" autocomplete="off">
+        <form id="formCupo" class="formLinea" autocomplete="off" hidden>
           <label class="campo">
             <span class="campo__etiqueta">Empresa</span>
-            <input type="text" id="cupoCliente" class="campo__control" placeholder="Nombre de la empresa" required list="listaClientes">
+            <input type="text" id="cupoCliente" class="campo__control" placeholder="Nombre de la empresa" required>
           </label>
           <label class="campo">
-            <span class="campo__etiqueta">Tiene que llevarse</span>
+            <span class="campo__etiqueta">Tiene que llevarse <span class="campo__opcional">(si se sabe)</span></span>
             <div class="campo__conUnidad">
               <input type="number" id="cupoKilos" class="campo__control campo__control--numero"
-                     placeholder="0" required min="1" step="1" inputmode="numeric">
+                     placeholder="0" min="1" step="1" inputmode="numeric">
               <span class="campo__unidad">kg</span>
             </div>
           </label>
-          <button type="submit" class="boton boton--principal">Guardar</button>
+          <button type="submit" class="boton boton--principal">Añadir</button>
         </form>
 
         <div id="listaCupos" class="resumen"></div>
@@ -332,6 +340,50 @@
         <button type="button" class="boton boton--secundario" id="modalCancelar">Cancelar</button>
         <button type="button" class="boton boton--peligro" id="modalConfirmar">Borrar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Corregir un viaje: solo el encargado -->
+  <div class="modal" id="modalEditar" hidden>
+    <div class="modal__caja modal__caja--ancha" role="dialog" aria-modal="true">
+      <h3 class="modal__titulo">Corregir viaje</h3>
+      <p class="modal__texto" id="editarOriginal"></p>
+
+      <form id="formEditar" autocomplete="off">
+        <label class="campo">
+          <span class="campo__etiqueta">Camión</span>
+          <select id="editarCamion" class="campo__control"></select>
+        </label>
+
+        <label class="campo">
+          <span class="campo__etiqueta">Peso cargado (bruto)</span>
+          <div class="campo__conUnidad">
+            <input type="number" id="editarBruto" class="campo__control campo__control--numero"
+                   required min="1" step="1" inputmode="numeric">
+            <span class="campo__unidad">kg</span>
+          </div>
+        </label>
+
+        <label class="campo">
+          <span class="campo__etiqueta">Cliente</span>
+          <select id="editarCliente" class="campo__control" required></select>
+        </label>
+
+        <label class="campo">
+          <span class="campo__etiqueta">Barco</span>
+          <input type="text" id="editarBarco" class="campo__control" placeholder="Nombre del barco">
+        </label>
+
+        <div class="neto" id="editarCajaNeto">
+          <span class="neto__etiqueta">Arena neta</span>
+          <span class="neto__valor" id="editarNeto">—</span>
+        </div>
+
+        <div class="modal__acciones">
+          <button type="button" class="boton boton--secundario" id="editarCancelar">Cancelar</button>
+          <button type="submit" class="boton boton--principal">Guardar cambios</button>
+        </div>
+      </form>
     </div>
   </div>
 

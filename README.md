@@ -15,8 +15,10 @@ matrícula con el peso nuevo y se actualiza; **los viajes ya registrados
 conservan la tara que tenían**, así que las cuentas de días anteriores no
 cambian.
 
-**Pesar** — Se elige el camión, se pone el peso con la arena dentro y el
-cliente. La arena neta se muestra en grande antes de guardar, para poder
+**Pesar** — Se elige el camión, se pone el peso con la arena dentro y **se elige
+la empresa de un desplegable**, nunca se escribe a mano: solo aparecen las que el
+encargado ha registrado para ese barco, así no salen duplicadas por una letra de
+diferencia. La arena neta se muestra en grande antes de guardar, para poder
 cantarla y confirmarla. Se repite tantas veces como viajes haga el camión.
 
 **Registro** — Todos los viajes del día, con filtros por cliente, barco y
@@ -34,10 +36,12 @@ campo para anotar a quién se le ha dado cada uno.
 
 Hay dos tipos de cuenta:
 
-- **Encargado**: ve la pestaña de Usuarios y decide quién puede trabajar cada
-  día.
+- **Encargado**: registra las empresas del barco, corrige o borra viajes del
+  registro, cierra la jornada y decide en la pestaña de Usuarios quién puede
+  trabajar cada día.
 - **Operario**: usuarios genéricos (`usuario1`, `usuario2`…) que se reparten
-  entre la gente del turno.
+  entre la gente del turno. Dan de alta camiones y apuntan viajes, y ven todo el
+  registro, pero no pueden corregirlo ni cerrar la jornada.
 
 El bloqueo está en la base de datos, no en la pantalla: un usuario apagado no
 puede leer ni escribir nada aunque sepa su contraseña. Si el encargado apaga a

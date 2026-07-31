@@ -326,6 +326,10 @@
 
   async function pintarRegistro() {
     const todos = await Datos.pesajes();
+    const esJefe = Datos.esAdmin();
+
+    // Cerrar la jornada solo lo puede hacer el encargado.
+    $('botonVaciar').hidden = !esJefe;
 
     const fCliente = $('filtroCliente').value;
     const fBarco = $('filtroBarco').value;
@@ -355,7 +359,10 @@
         '<td class="derecha tara"></td>' +
         '<td class="derecha bruto"></td>' +
         '<td class="derecha neto-celda"></td>' +
-        '<td><button class="boton boton--fantasma">Borrar</button></td>';
+        '<td class="acciones">' +
+          '<button class="boton boton--fantasma boton--azul">Corregir</button>' +
+          '<button class="boton boton--fantasma">Borrar</button>' +
+        '</td>';
 
       tr.querySelector('.hora').textContent = hora(p.fecha);
       tr.querySelector('.placa').textContent = p.matricula;
@@ -365,7 +372,14 @@
       tr.querySelector('.bruto').textContent = kg(p.bruto);
       tr.querySelector('.neto-celda').textContent = kg(neto);
 
-      tr.querySelector('button').addEventListener('click', async function () {
+      // Corregir y borrar son cosa del encargado.
+      const acciones = tr.querySelectorAll('.acciones button');
+      acciones[0].hidden = !esJefe;
+      acciones[1].hidden = !esJefe;
+
+      acciones[0].addEventListener('click', function () { abrirEditor(p); });
+
+      acciones[1].addEventListener('click', async function () {
         const ok = await confirmar(
           'Viaje de ' + p.matricula + ' · ' + p.cliente + ' · ' + kg(neto) +
           '. Esto no se puede deshacer.',
@@ -524,18 +538,21 @@
   $('formCupo').addEventListener('submit', async function (e) {
     e.preventDefault();
     const cliente = $('cupoCliente').value.trim();
-    const kilos = parseInt($('cupoKilos').value, 10);
+    const texto = $('cupoKilos').value.trim();
+    const kilos = texto ? parseInt(texto, 10) : null;
 
     if (!cliente) return avisar('Falta el nombre de la empresa.', 'error');
-    if (!kilos || kilos <= 0) return avisar('Los kilos no son válidos.', 'error');
+    if (texto && (!kilos || kilos <= 0)) return avisar('Los kilos no son válidos.', 'error');
 
     try {
       const r = await Datos.guardarCupo({ cliente: cliente, kilos: kilos });
       this.reset();
       $('cupoCliente').focus();
-      avisar(r.actualizado
-        ? cliente + ': ' + kg(r.anterior) + ' → ' + kg(kilos)
-        : cliente + ' tiene que llevarse ' + kg(kilos), 'exito');
+      if (r.actualizado) {
+        avisar(cliente + ': ' + (r.anterior ? kg(r.anterior) : 'sin cantidad') + ' → ' + (kilos ? kg(kilos) : 'sin cantidad'), 'exito');
+      } else {
+        avisar(kilos ? cliente + ' tiene que llevarse ' + kg(kilos) : cliente + ' añadida al barco', 'exito');
+      }
       await pintarTodo();
     } catch (err) {
       avisar(err.message, 'error');
@@ -545,15 +562,24 @@
   async function pintarCupos() {
     const cupos = await Datos.cupos();
     const caja = $('listaCupos');
+    const esJefe = Datos.esAdmin();
+
+    // Registrar las empresas del barco es cosa del encargado.
+    $('formCupo').hidden = !esJefe;
+    $('ayudaEmpresas').textContent = esJefe
+      ? 'Estas son las únicas empresas que se pueden elegir al pesar, para que nadie escriba una a mano y salgan duplicadas por una letra.'
+      : 'Las empresas de este barco las registra el encargado. Al pesar solo podrás elegir entre estas.';
 
     if (!cupos.length) {
-      caja.innerHTML = '<p class="vacio">Todavía no hay ninguna empresa con cantidad asignada.</p>';
+      caja.innerHTML = esJefe
+        ? '<p class="vacio">Añade arriba las empresas que vienen en este barco.</p>'
+        : '<p class="vacio">El encargado todavía no ha registrado las empresas.</p>';
       return;
     }
 
     caja.innerHTML = '';
     cupos.forEach(function (c) {
-      const terminado = c.falta === 0;
+      const terminado = c.conCantidad && c.falta === 0;
       const fila = document.createElement('div');
       fila.className = 'cupo' + (terminado ? ' cupo--completo' : '');
       fila.innerHTML =
@@ -569,34 +595,158 @@
         '</div>';
 
       fila.querySelector('.cupo__nombre').textContent = c.cliente;
-      fila.querySelector('.cupo__barra i').style.width = c.porcentaje + '%';
       fila.querySelector('.cupo__hecho').textContent = kg(c.descargado);
-      fila.querySelector('.cupo__total').textContent = 'de ' + kg(c.kilos);
 
-      if (c.pasado > 0) {
-        fila.querySelector('.cupo__falta').textContent = kg(c.pasado);
-        fila.querySelector('.cupo__faltaTexto').textContent = 'de más';
-        fila.querySelector('.cupo__falta').classList.add('cupo__pasado');
+      if (!c.conCantidad) {
+        // Empresa registrada pero sin cantidad asignada todavía.
+        fila.querySelector('.cupo__barra').hidden = true;
+        fila.querySelector('.cupo__total').textContent = 'sin cantidad asignada';
+        fila.querySelector('.cupo__falta').textContent = '';
+        fila.querySelector('.cupo__faltaTexto').textContent = '';
       } else {
-        fila.querySelector('.cupo__falta').textContent = kg(c.falta);
-        fila.querySelector('.cupo__faltaTexto').textContent = terminado ? 'pendiente' : 'por descargar';
+        fila.querySelector('.cupo__barra i').style.width = c.porcentaje + '%';
+        fila.querySelector('.cupo__total').textContent = 'de ' + kg(c.kilos);
+
+        if (c.pasado > 0) {
+          fila.querySelector('.cupo__falta').textContent = kg(c.pasado);
+          fila.querySelector('.cupo__faltaTexto').textContent = 'de más';
+          fila.querySelector('.cupo__falta').classList.add('cupo__pasado');
+        } else {
+          fila.querySelector('.cupo__falta').textContent = kg(c.falta);
+          fila.querySelector('.cupo__faltaTexto').textContent = terminado ? 'pendiente' : 'por descargar';
+        }
       }
 
-      fila.querySelector('button').addEventListener('click', async function () {
+      const botonQuitar = fila.querySelector('button');
+      botonQuitar.hidden = !esJefe;
+      botonQuitar.addEventListener('click', async function () {
         const ok = await confirmar(
-          'Se quitará la cantidad asignada a ' + c.cliente + ' (' + kg(c.kilos) + '). ' +
-          'Los viajes ya registrados no se tocan.',
-          { titulo: 'Quitar cantidad', aceptar: 'Quitar' }
+          c.cliente + ' dejará de aparecer entre las empresas de este barco' +
+          (c.descargado > 0
+            ? ', pero los ' + kg(c.descargado) + ' ya descargados se quedan en el registro.'
+            : '.'),
+          { titulo: 'Quitar empresa', aceptar: 'Quitar' }
         );
         if (!ok) return;
         await Datos.eliminarCupo(c.id);
-        avisar('Cantidad quitada.');
+        avisar('Empresa quitada.');
         await pintarTodo();
       });
 
       caja.appendChild(fila);
     });
   }
+
+  /* ---------------------------------------------------------
+     CORREGIR UN VIAJE: solo el encargado
+     --------------------------------------------------------- */
+
+  let editando = null;
+
+  async function abrirEditor(pesaje) {
+    editando = pesaje;
+    const camiones = await Datos.camiones();
+
+    // Camiones disponibles, incluido el del viaje aunque se diera de baja
+    const selector = $('editarCamion');
+    selector.innerHTML = '';
+    let estaElSuyo = false;
+    camiones.forEach(function (c) {
+      const op = document.createElement('option');
+      op.value = c.id;
+      op.textContent = c.matricula + ' · tara ' + kg(c.tara);
+      selector.appendChild(op);
+      if (c.id === pesaje.camionId) estaElSuyo = true;
+    });
+    if (!estaElSuyo) {
+      const op = document.createElement('option');
+      op.value = '';
+      op.textContent = pesaje.matricula + ' · tara ' + kg(pesaje.tara) + ' (dado de baja)';
+      selector.insertBefore(op, selector.firstChild);
+    }
+    selector.value = estaElSuyo ? pesaje.camionId : '';
+
+    $('editarOriginal').textContent =
+      'Tal como está ahora: ' + pesaje.matricula + ' · ' + pesaje.cliente + ' · ' +
+      kg(pesaje.bruto - pesaje.tara) + ' (' + hora(pesaje.fecha) + ')';
+
+    $('editarBruto').value = pesaje.bruto;
+    $('editarBarco').value = pesaje.barco || '';
+
+    // Si la empresa del viaje ya no está entre las del día, se añade
+    // para no perderla al corregir otra cosa.
+    const sel = $('editarCliente');
+    if (pesaje.cliente && !Array.from(sel.options).some(function (o) { return o.value === pesaje.cliente; })) {
+      const op = document.createElement('option');
+      op.value = pesaje.cliente;
+      op.textContent = pesaje.cliente + ' (ya no está en el barco)';
+      sel.appendChild(op);
+    }
+    sel.value = pesaje.cliente;
+
+    calcularNetoEditor();
+    $('modalEditar').hidden = false;
+    $('editarBruto').focus();
+  }
+
+  function cerrarEditor() {
+    $('modalEditar').hidden = true;
+    editando = null;
+  }
+
+  async function calcularNetoEditor() {
+    const bruto = parseInt($('editarBruto').value, 10);
+    const idCamion = $('editarCamion').value;
+    const camion = idCamion ? await Datos.buscarCamion(idCamion) : null;
+    const tara = camion ? camion.tara : (editando ? editando.tara : 0);
+
+    const caja = $('editarCajaNeto');
+    const valor = $('editarNeto');
+    if (!bruto || !tara) {
+      valor.textContent = '—';
+      caja.classList.remove('neto--error');
+      return;
+    }
+    const neto = bruto - tara;
+    if (neto <= 0) {
+      valor.textContent = 'Revisar pesos';
+      caja.classList.add('neto--error');
+    } else {
+      valor.textContent = kg(neto);
+      caja.classList.remove('neto--error');
+    }
+  }
+
+  $('editarBruto').addEventListener('input', calcularNetoEditor);
+  $('editarCamion').addEventListener('change', calcularNetoEditor);
+  $('editarCancelar').addEventListener('click', cerrarEditor);
+  $('modalEditar').addEventListener('click', function (e) {
+    if (e.target === $('modalEditar')) cerrarEditor();
+  });
+
+  $('formEditar').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!editando) return;
+
+    const bruto = parseInt($('editarBruto').value, 10);
+    const cliente = $('editarCliente').value;
+    if (!bruto || bruto <= 0) return avisar('El peso cargado no es válido.', 'error');
+    if (!cliente) return avisar('Falta el cliente.', 'error');
+
+    try {
+      const p = await Datos.editarPesaje(editando.id, {
+        camionId: $('editarCamion').value || undefined,
+        bruto: bruto,
+        cliente: cliente,
+        barco: $('editarBarco').value.trim()
+      });
+      cerrarEditor();
+      avisar('Viaje corregido: ' + p.matricula + ' · ' + kg(p.bruto - p.tara), 'exito');
+      await pintarTodo();
+    } catch (err) {
+      avisar(err.message, 'error');
+    }
+  });
 
   /* ---------------------------------------------------------
      USUARIOS: solo lo ve el jefe
@@ -674,10 +824,32 @@
   async function pintarListas() {
     const clientes = await Datos.clientes();
     const barcos = await Datos.barcos();
-    rellenarDatalist($('listaClientes'), clientes);
+    const empresas = await Datos.empresas();
+
     rellenarDatalist($('listaBarcos'), barcos);
     rellenarFiltro($('filtroCliente'), clientes);
     rellenarFiltro($('filtroBarco'), barcos);
+
+    // El cliente ya no se escribe: se elige entre las del día.
+    rellenarSelect($('pesajeCliente'), empresas, 'Elige la empresa…');
+    rellenarSelect($('editarCliente'), empresas, 'Elige la empresa…');
+    $('sinEmpresas').hidden = empresas.length > 0;
+  }
+
+  function rellenarSelect(select, valores, textoVacio) {
+    const anterior = select.value;
+    select.innerHTML = '';
+    const vacio = document.createElement('option');
+    vacio.value = '';
+    vacio.textContent = textoVacio;
+    select.appendChild(vacio);
+    valores.forEach(function (v) {
+      const op = document.createElement('option');
+      op.value = v;
+      op.textContent = v;
+      select.appendChild(op);
+    });
+    if (valores.indexOf(anterior) !== -1) select.value = anterior;
   }
 
   function rellenarDatalist(lista, valores) {

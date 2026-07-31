@@ -304,6 +304,44 @@ const Datos = (function () {
       return aPesaje(data);
     },
 
+    /** Corregir un viaje ya registrado. Solo el encargado, por las
+        reglas de la base de datos. Si se cambia de camión, se recoge
+        también su matrícula y su tara. */
+    async editarPesaje(id, cambios) {
+      const anterior = estado.pesajes.find(function (p) { return p.id === id; });
+      if (!anterior) throw new Error('Ese viaje ya no existe.');
+
+      const camion = cambios.camionId
+        ? estado.camiones.find(function (c) { return c.id === cambios.camionId; })
+        : null;
+
+      const matricula = camion ? camion.matricula : anterior.matricula;
+      const tara = camion ? camion.tara : anterior.tara;
+      const bruto = cambios.bruto !== undefined ? cambios.bruto : anterior.bruto;
+
+      if (bruto <= tara) {
+        throw new Error('El peso cargado (' + bruto + ' kg) tiene que ser mayor que la tara (' + tara + ' kg).');
+      }
+
+      const { data, error } = await cliente
+        .from('pesajes')
+        .update({
+          camion_id: camion ? camion.id : anterior.camionId,
+          matricula: matricula,
+          tara: tara,
+          bruto: bruto,
+          cliente: cambios.cliente !== undefined ? cambios.cliente : anterior.cliente,
+          barco: cambios.barco !== undefined ? cambios.barco : anterior.barco
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) reventar(error, 'corrigiendo el viaje');
+      await recargar();
+      return aPesaje(data);
+    },
+
     async eliminarPesaje(id) {
       const { error } = await cliente.from('pesajes').delete().eq('id', id);
       if (error) reventar(error, 'borrando el viaje');
@@ -351,18 +389,29 @@ const Datos = (function () {
         .filter(function (c) { return !c.archivado; })
         .map(function (c) {
           const hecho = descargado[c.cliente] || 0;
+          const conCantidad = !!c.kilos;
           return {
             id: c.id,
             cliente: c.cliente,
-            kilos: c.kilos,
+            kilos: c.kilos,                 // puede venir vacío
+            conCantidad: conCantidad,
             barco: c.barco,
             descargado: hecho,
-            falta: Math.max(0, c.kilos - hecho),
-            pasado: Math.max(0, hecho - c.kilos),
-            porcentaje: Math.min(100, Math.round((hecho / c.kilos) * 100))
+            falta: conCantidad ? Math.max(0, c.kilos - hecho) : null,
+            pasado: conCantidad ? Math.max(0, hecho - c.kilos) : 0,
+            porcentaje: conCantidad ? Math.min(100, Math.round((hecho / c.kilos) * 100)) : 0
           };
         })
         .sort(function (a, b) { return a.cliente.localeCompare(b.cliente, 'es'); });
+    },
+
+    /** Solo los nombres de las empresas del día, para el desplegable
+        del pesaje. Así nadie escribe una empresa a mano ni con erratas. */
+    async empresas() {
+      return estado.cupos
+        .filter(function (c) { return !c.archivado; })
+        .map(function (c) { return c.cliente; })
+        .sort(function (a, b) { return a.localeCompare(b, 'es'); });
     },
 
     /** Fija o corrige el cupo de una empresa. */
@@ -374,16 +423,16 @@ const Datos = (function () {
       if (abierto) {
         const { error } = await cliente
           .from('cupos')
-          .update({ kilos: datos.kilos, barco: datos.barco || '' })
+          .update({ kilos: datos.kilos || null, barco: datos.barco || '' })
           .eq('id', abierto.id);
-        if (error) reventar(error, 'actualizando el cupo');
+        if (error) reventar(error, 'actualizando la empresa');
         await recargar();
         return { actualizado: true, anterior: abierto.kilos };
       }
 
       const { error } = await cliente.from('cupos').insert({
         cliente: datos.cliente,
-        kilos: datos.kilos,
+        kilos: datos.kilos || null,
         barco: datos.barco || '',
         creado_por: usuario ? usuario.id : null
       });
