@@ -58,6 +58,30 @@
 
       <button type="submit" class="boton boton--principal" id="botonEntrar">Entrar</button>
       <p class="acceso__error" id="accesoError" hidden></p>
+
+      <!-- Instalación: un toque donde se pueda, instrucciones donde no -->
+      <div class="instalar" id="instalar" hidden>
+        <p class="instalar__titulo">Tenla a mano como una aplicación</p>
+
+        <button type="button" class="boton boton--secundario" id="botonInstalar" hidden>
+          Instalar en este dispositivo
+        </button>
+
+        <div class="instalar__pasos" id="instalarIOS" hidden>
+          <p>En el iPhone, con <strong>Safari</strong>:</p>
+          <ol>
+            <li>Pulsa <strong>compartir</strong> <span class="instalar__icono">⬆️</span> abajo en el centro</li>
+            <li>Baja y elige <strong>«Añadir a pantalla de inicio»</strong></li>
+            <li>Pulsa <strong>Añadir</strong></li>
+          </ol>
+        </div>
+
+        <div class="instalar__pasos" id="instalarOtros" hidden>
+          <p>Desde el menú del navegador (los tres puntos), elige
+             <strong>«Instalar aplicación»</strong> o
+             <strong>«Añadir a pantalla de inicio»</strong>.</p>
+        </div>
+      </div>
     </form>
   </div>
 

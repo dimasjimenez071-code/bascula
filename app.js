@@ -1024,10 +1024,68 @@
   }
 
   /* ---------------------------------------------------------
+     Instalar la aplicación
+     ---------------------------------------------------------
+     Donde el navegador lo permite, con un solo toque. Donde no
+     (iPhone), con los pasos delante para no tener que
+     explicárselos a nadie por teléfono.
+     --------------------------------------------------------- */
+
+  let avisoDeInstalacion = null;
+
+  const yaEstaInstalada =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  const esIPhone = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  function prepararInstalacion() {
+    if (yaEstaInstalada) return;          // ya la tiene: no marear
+    $('instalar').hidden = false;
+
+    if (esIPhone) {
+      $('instalarIOS').hidden = false;
+    } else if (!avisoDeInstalacion) {
+      // Sin oferta del navegador todavía: al menos explicamos el camino.
+      $('instalarOtros').hidden = false;
+    }
+  }
+
+  // Chrome y Edge avisan cuando la aplicación se puede instalar.
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    avisoDeInstalacion = e;
+    $('instalar').hidden = false;
+    $('botonInstalar').hidden = false;
+    $('instalarOtros').hidden = true;
+  });
+
+  $('botonInstalar').addEventListener('click', async function () {
+    if (!avisoDeInstalacion) return;
+    this.disabled = true;
+    avisoDeInstalacion.prompt();
+    const { outcome } = await avisoDeInstalacion.userChoice;
+    avisoDeInstalacion = null;
+    this.disabled = false;
+    if (outcome === 'accepted') {
+      $('instalar').hidden = true;
+      avisar('Instalada. Ábrela desde su icono.', 'exito');
+    } else {
+      this.hidden = true;
+      $('instalarOtros').hidden = false;
+    }
+  });
+
+  window.addEventListener('appinstalled', function () {
+    $('instalar').hidden = true;
+  });
+
+  /* ---------------------------------------------------------
      Acceso
      --------------------------------------------------------- */
 
   function mostrarAcceso(mostrar) {
+    if (mostrar) prepararInstalacion();
     $('acceso').hidden = !mostrar;
     document.querySelector('.pestanas').hidden = mostrar;
     document.querySelector('.contenido').hidden = mostrar;

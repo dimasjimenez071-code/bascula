@@ -136,6 +136,35 @@ button, input, select { font-family: inherit; font-size: inherit; }
 }
 
 /* =========================================================
+   Invitación a instalar, en la pantalla de acceso
+   ========================================================= */
+
+.instalar {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--linea);
+  text-align: left;
+}
+.instalar__titulo {
+  margin: 0 0 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+.instalar .boton { width: 100%; }
+
+.instalar__pasos {
+  font-size: 0.87rem;
+  color: var(--texto-suave);
+  line-height: 1.55;
+}
+.instalar__pasos p { margin: 0 0 0.5rem; }
+.instalar__pasos ol { margin: 0; padding-left: 1.2rem; }
+.instalar__pasos li { margin-bottom: 0.3rem; }
+.instalar__pasos strong { color: var(--texto); }
+.instalar__icono { font-size: 1rem; }
+
+/* =========================================================
    Aviso de datos pendientes de subir
    ========================================================= */
 
