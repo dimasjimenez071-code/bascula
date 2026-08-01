@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Báscula — cómo instalarla</title>
+  <style>
+    :root {
+      --azul: #0b3d5c;
+      --texto: #14181f;
+      --suave: #5b6472;
+      --linea: #dfe3e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2.5rem 1.5rem 4rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--texto);
+      line-height: 1.6;
+      background: #f2f4f7;
+    }
+    .hoja {
+      max-width: 46rem;
+      margin: 0 auto;
+      padding: clamp(1.5rem, 5vw, 3rem);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 8px 28px rgba(16,24,40,.06);
+    }
+
+    header { text-align: center; padding-bottom: 2rem; border-bottom: 1px solid var(--linea); }
+    .icono { font-size: 2.5rem; line-height: 1; }
+    h1 { margin: .5rem 0 .25rem; font-size: 1.8rem; letter-spacing: -.02em; }
+    .lema { margin: 0; color: var(--suave); }
+
+    .qr { text-align: center; padding: 2rem 0 1rem; }
+    .qr svg { width: 220px; height: 220px; }
+    .qr p { margin: .5rem 0 0; font-size: .9rem; color: var(--suave); }
+
+    .enlace {
+      display: block;
+      margin: 0 auto 2rem;
+      max-width: 34rem;
+      padding: .9rem 1rem;
+      border: 1px solid var(--linea);
+      border-radius: 10px;
+      background: #f7f9fb;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--azul);
+      word-break: break-all;
+      text-decoration: none;
+    }
+
+    h2 {
+      margin: 2.25rem 0 .75rem;
+      font-size: 1.1rem;
+      letter-spacing: -.01em;
+    }
+    h2 .num {
+      display: inline-grid;
+      place-items: center;
+      width: 24px; height: 24px;
+      margin-right: .5rem;
+      border-radius: 50%;
+      background: var(--azul);
+      color: #fff;
+      font-size: .8rem;
+      vertical-align: .05em;
+    }
+
+    ol, ul { margin: .5rem 0 0; padding-left: 1.4rem; }
+    li { margin-bottom: .4rem; }
+    strong { font-weight: 600; }
+
+    .nota {
+      margin-top: 2.5rem;
+      padding: 1.1rem 1.25rem;
+      border-radius: 10px;
+      background: #f7f9fb;
+      border: 1px solid var(--linea);
+      font-size: .92rem;
+      color: var(--suave);
+    }
+    .nota strong { color: var(--texto); }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--linea);
+      font-size: .85rem;
+      color: var(--suave);
+      text-align: center;
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .hoja { box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+      h2 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hoja">
+
+    <header>
+      <div class="icono">⚖</div>
+      <h1>Báscula</h1>
+      <p class="lema">Control de pesajes del muelle</p>
+    </header>
+
+    <div class="qr">
+      <img src="qr.svg" alt="Código QR con la dirección de la aplicación" width="220" height="220">
+      <p>Escanea el código con la cámara del móvil</p>
+    </div>
+
+    <a class="enlace" href="https://dimasjimenez071-code.github.io/bascula/">https://dimasjimenez071-code.github.io/bascula/</a>
+
+    <h2><span class="num">1</span>Abre el enlace</h2>
+    <p>Escanea el código de arriba con la cámara del móvil, o escribe la dirección
+      en el navegador. No hay que descargar nada de ninguna tienda.</p>
+
+    <h2><span class="num">2</span>Instálala como aplicación</h2>
+
+    <p><strong>iPhone o iPad</strong> — tiene que ser desde <strong>Safari</strong>:</p>
+    <ol>
+      <li>Pulsa el botón de compartir (el cuadrado con la flecha hacia arriba)</li>
+      <li>Baja en la lista hasta <strong>«Añadir a pantalla de inicio»</strong></li>
+      <li>Pulsa <strong>Añadir</strong></li>
+    </ol>
+
+    <p><strong>Android</strong> — desde <strong>Chrome</strong>:</p>
+    <ol>
+      <li>Menú de los tres puntos, arriba a la derecha</li>
+      <li><strong>«Instalar aplicación»</strong> (o «Añadir a pantalla de inicio»)</li>
+      <li>Pulsa <strong>Instalar</strong></li>
+    </ol>
+
+    <p><strong>Ordenador</strong> — con Chrome o Edge:</p>
+    <ol>
+      <li>Mira a la derecha de la barra de direcciones: aparece un icono de instalar</li>
+      <li>Si no lo ves: tres puntos → <strong>Instalar página como aplicación</strong></li>
+    </ol>
+
+    <h2><span class="num">3</span>Entra con tu usuario</h2>
+    <p>El encargado del muelle te dará un usuario y una contraseña. Sin ellos no se
+      puede ver ni apuntar nada.</p>
+
+    <div class="nota">
+      <p style="margin:0 0 .6rem"><strong>¿Por qué no está en la App Store?</strong></p>
+      <p style="margin:0">Porque no hace falta. Instalada desde el enlace queda igual: con
+      su icono en la pantalla de inicio, a pantalla completa y funcionando aunque no haya
+      cobertura. Además se actualiza sola: cuando se mejora algo, todo el mundo lo tiene
+      la próxima vez que la abre, sin descargar nada.</p>
+    </div>
+
+    <footer>
+      Herramienta interna del muelle · Para altas de usuario, habla con el encargado
+    </footer>
+
+  </div>
+</body>
+</html>
