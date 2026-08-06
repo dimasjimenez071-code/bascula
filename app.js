@@ -1039,16 +1039,14 @@
 
   const esIPhone = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
+  /* El botón está SIEMPRE, no solo cuando el navegador ofrece
+     instalar. Antes aparecía y desaparecía según el día y el
+     dispositivo, y eso no es una forma de instalar: si al pulsarlo
+     no hay oferta del navegador, enseña los pasos a mano. */
   function prepararInstalacion() {
     if (yaEstaInstalada) return;          // ya la tiene: no marear
     $('instalar').hidden = false;
-
-    if (esIPhone) {
-      $('instalarIOS').hidden = false;
-    } else if (!avisoDeInstalacion) {
-      // Sin oferta del navegador todavía: al menos explicamos el camino.
-      $('instalarOtros').hidden = false;
-    }
+    $('botonInstalar').hidden = false;
   }
 
   // Chrome y Edge avisan cuando la aplicación se puede instalar.
@@ -1060,8 +1058,16 @@
     $('instalarOtros').hidden = true;
   });
 
+  function ensenarPasosAMano() {
+    $(esIPhone ? 'instalarIOS' : 'instalarOtros').hidden = false;
+    $('botonInstalar').hidden = true;   // ya no aporta nada
+  }
+
   $('botonInstalar').addEventListener('click', async function () {
-    if (!avisoDeInstalacion) return;
+    // Sin oferta del navegador (iPhone, o Chrome que no la da hoy):
+    // en vez de no hacer nada, se explican los pasos.
+    if (!avisoDeInstalacion) return ensenarPasosAMano();
+
     this.disabled = true;
     avisoDeInstalacion.prompt();
     const { outcome } = await avisoDeInstalacion.userChoice;
@@ -1071,8 +1077,7 @@
       $('instalar').hidden = true;
       avisar('Instalada. Ábrela desde su icono.', 'exito');
     } else {
-      this.hidden = true;
-      $('instalarOtros').hidden = false;
+      ensenarPasosAMano();
     }
   });
 
